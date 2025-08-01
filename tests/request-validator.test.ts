@@ -1,5 +1,5 @@
 // Test file for RequestValidator functionality
-import { RequestValidator } from './request-validator.js';
+import { RequestValidator } from '../src/request-validator.js';
 
 console.log('Testing RequestValidator...');
 

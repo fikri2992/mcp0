@@ -4,7 +4,7 @@
  * Test script to verify complete end-to-end tool call flow
  */
 
-import { MCPServer } from './mcp-server.js';
+import { MCPServer } from '../src/mcp-server.js';
 
 async function testCompleteFlow() {
   console.log('Testing Complete Tool Call Handler Flow...\n');

@@ -176,6 +176,9 @@ npm install
 # Build the project
 npm run build
 
+# Run tests
+npm test
+
 # Run the server
 npm start
 ```
@@ -188,6 +191,11 @@ npm run dev
 
 # Run with development settings
 npm run start:dev
+
+# Run individual test suites
+npm run test:validation
+npm run test:handlers
+npm run test:flow
 ```
 
 ## Security Considerations

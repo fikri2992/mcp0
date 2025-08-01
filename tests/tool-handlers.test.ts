@@ -4,7 +4,7 @@
  * Test script to verify tool call handlers work correctly
  */
 
-import { MCPServer } from './mcp-server.js';
+import { MCPServer } from '../src/mcp-server.js';
 
 async function testToolHandlers() {
   console.log('Testing MCP Server Tool Call Handlers...\n');

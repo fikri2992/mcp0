@@ -4,7 +4,7 @@
  * Test script to verify tool call handlers with different response types
  */
 
-import { MCPServer } from './mcp-server.js';
+import { MCPServer } from '../src/mcp-server.js';
 
 async function testResponseTypes() {
   console.log('Testing Tool Call Handlers with Different Response Types...\n');

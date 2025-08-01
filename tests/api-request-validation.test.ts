@@ -4,7 +4,7 @@
  * Test script to verify API request validation and tool call integration
  */
 
-import { MCPServer } from './mcp-server.js';
+import { MCPServer } from '../src/mcp-server.js';
 
 async function testAPIRequestValidation() {
   console.log('Testing API Request Validation and Tool Call Integration...\n');

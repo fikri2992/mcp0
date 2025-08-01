@@ -2,6 +2,10 @@
 src/
 tsconfig.json
 
+# Test files
+tests/
+dist/tests/
+
 # Development files
 .kiro/
 test-*.js

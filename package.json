@@ -21,7 +21,13 @@
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "prepublishOnly": "npm run build",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test": "npm run build && npm run test:all",
+    "test:all": "node dist/tests/run-all-tests.js",
+    "test:validation": "node dist/tests/api-request-validation.test.js",
+    "test:handlers": "node dist/tests/tool-handlers.test.js",
+    "test:flow": "node dist/tests/complete-flow.test.js",
+    "test:types": "node dist/tests/response-types.test.js",
+    "test:validator": "node dist/tests/request-validator.test.js"
   },
   "keywords": [
     "mcp", 
