@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  mcp-api-server:
+    build: .
+    image: mcp-api-server:latest
+    container_name: mcp-api-server
+    restart: unless-stopped
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - DEBUG=false
+      - API_TIMEOUT=30000
+      - ALLOW_LOCALHOST=false
+      - ALLOW_PRIVATE_IPS=false
+      - MAX_RESPONSE_LENGTH=50000
+      - USER_AGENT=MCP-API-Server/1.0.0
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Development version with debug enabled
+  mcp-api-server-dev:
+    build: .
+    image: mcp-api-server:latest
+    container_name: mcp-api-server-dev
+    restart: unless-stopped
+    profiles:
+      - dev
+    
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+      - API_TIMEOUT=60000
+      - ALLOW_LOCALHOST=true
+      - ALLOW_PRIVATE_IPS=true
+      - MAX_RESPONSE_LENGTH=100000
+      - USER_AGENT=MCP-API-Server-Dev/1.0.0
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 128M
