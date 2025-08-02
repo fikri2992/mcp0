@@ -1,0 +1,21 @@
+{
+  "defaults": {
+    "model": "gpt-4",
+    "debug": false,
+    "quiet": false,
+    "noAi": false
+  },
+  "openai": {
+    "model": "gpt-4",
+    "timeout": 30000,
+    "maxTokens": 4000
+  },
+  "output": {
+    "overwrite": false,
+    "backup": true
+  },
+  "validation": {
+    "strict": false,
+    "skipWarnings": false
+  }
+}

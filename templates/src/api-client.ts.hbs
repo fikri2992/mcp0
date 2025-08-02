@@ -1,0 +1,262 @@
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { APIResponse, ErrorResponse, createNetworkError, createHTTPError, createParsingError } from './types.js';
+
+/**
+ * Configuration options for the API client
+ */
+export interface APIClientConfig {
+  /** Request timeout in milliseconds */
+  timeout?: number;
+  /** User agent string for requests */
+  userAgent?: string;
+  /** Maximum number of redirects to follow */
+  maxRedirects?: number;
+  /** Enable request/response logging */
+  debug?: boolean;
+}
+
+/**
+ * HTTP API client for making requests to external APIs
+ * Generated for {{server.name}}
+ */
+export class APIClient {
+  private axios: AxiosInstance;
+  private config: Required<APIClientConfig>;
+
+  constructor(config: APIClientConfig = {}) {
+    this.config = {
+      timeout: config.timeout ?? {{configuration.timeout}},
+      userAgent: config.userAgent ?? '{{configuration.userAgent}}',
+      maxRedirects: config.maxRedirects ?? 5,
+      debug: config.debug ?? false,
+    };
+
+    // Create axios instance with default configuration
+    this.axios = axios.create({
+      timeout: this.config.timeout,
+      maxRedirects: this.config.maxRedirects,
+      headers: {
+        'User-Agent': this.config.userAgent,
+      },
+      // Disable automatic JSON parsing to handle responses manually
+      transformResponse: [(data) => data],
+      // Validate status codes - don't throw on 4xx/5xx
+      validateStatus: () => true,
+    });
+
+    // Add request interceptor for logging
+    if (this.config.debug) {
+      this.axios.interceptors.request.use(
+        (config) => {
+          console.error(`[APIClient] Request: ${config.method?.toUpperCase()} ${config.url}`);
+          if (config.headers) {
+            console.error(`[APIClient] Headers:`, config.headers);
+          }
+          if (config.data) {
+            console.error(`[APIClient] Body:`, config.data);
+          }
+          return config;
+        },
+        (error) => {
+          console.error(`[APIClient] Request Error:`, error);
+          return Promise.reject(error);
+        }
+      );
+
+      this.axios.interceptors.response.use(
+        (response) => {
+          console.error(`[APIClient] Response: ${response.status} ${response.statusText}`);
+          console.error(`[APIClient] Response Headers:`, response.headers);
+          return response;
+        },
+        (error) => {
+          console.error(`[APIClient] Response Error:`, error);
+          return Promise.reject(error);
+        }
+      );
+    }
+  }
+
+{{#each apis}}
+{{#eq method "GET"}}
+  /**
+   * Make a GET request to {{name}}
+   * {{#if description}}{{description}}{{else}}No description available{{/if}}
+   */
+  async get(url: string, headers?: Record<string, string>): Promise<APIResponse | ErrorResponse> {
+    return this.makeRequest('GET', url, undefined, headers);
+  }
+{{/eq}}
+
+{{#eq method "POST"}}
+  /**
+   * Make a POST request to {{name}}
+   * {{#if description}}{{description}}{{else}}No description available{{/if}}
+   */
+  async post(url: string, body?: string | object, headers?: Record<string, string>): Promise<APIResponse | ErrorResponse> {
+    return this.makeRequest('POST', url, body, headers);
+  }
+{{/eq}}
+
+{{#eq method "PUT"}}
+  /**
+   * Make a PUT request to {{name}}
+   * {{#if description}}{{description}}{{else}}No description available{{/if}}
+   */
+  async put(url: string, body?: string | object, headers?: Record<string, string>): Promise<APIResponse | ErrorResponse> {
+    return this.makeRequest('PUT', url, body, headers);
+  }
+{{/eq}}
+
+{{#eq method "DELETE"}}
+  /**
+   * Make a DELETE request to {{name}}
+   * {{#if description}}{{description}}{{else}}No description available{{/if}}
+   */
+  async delete(url: string, headers?: Record<string, string>): Promise<APIResponse | ErrorResponse> {
+    return this.makeRequest('DELETE', url, undefined, headers);
+  }
+{{/eq}}
+
+{{/each}}
+
+  /**
+   * Generic method to make HTTP requests
+   */
+  private async makeRequest(
+    method: string,
+    url: string,
+    body?: string | object,
+    headers?: Record<string, string>
+  ): Promise<APIResponse | ErrorResponse> {
+    try {
+      // Prepare request configuration
+      const requestConfig: AxiosRequestConfig = {
+        method: method as any,
+        url,
+        headers: {
+          ...headers,
+        },
+      };
+
+      // Add body for non-GET requests
+      if (body !== undefined && method !== 'GET') {
+        if (typeof body === 'string') {
+          requestConfig.data = body;
+          // Set content-type if not already specified
+          if (!requestConfig.headers!['Content-Type'] && !requestConfig.headers!['content-type']) {
+            requestConfig.headers!['Content-Type'] = 'text/plain';
+          }
+        } else {
+          requestConfig.data = JSON.stringify(body);
+          // Set content-type if not already specified
+          if (!requestConfig.headers!['Content-Type'] && !requestConfig.headers!['content-type']) {
+            requestConfig.headers!['Content-Type'] = 'application/json';
+          }
+        }
+      }
+
+      // Make the request
+      const response: AxiosResponse = await this.axios.request(requestConfig);
+
+      // Parse response data
+      let parsedData: any;
+      try {
+        // Try to parse as JSON first
+        parsedData = JSON.parse(response.data);
+      } catch {
+        // If JSON parsing fails, use raw data
+        parsedData = response.data;
+      }
+
+      // Convert headers to plain object
+      const responseHeaders: Record<string, string> = {};
+      Object.entries(response.headers).forEach(([key, value]) => {
+        responseHeaders[key.toLowerCase()] = String(value);
+      });
+
+      // Return successful response
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        data: parsedData,
+      };
+
+    } catch (error) {
+      // Handle different types of errors
+      if (axios.isAxiosError(error)) {
+        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+          return createNetworkError(
+            `Request timeout after ${this.config.timeout}ms`,
+            { url, method, timeout: this.config.timeout }
+          );
+        }
+
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+          return createNetworkError(
+            `Network error: ${error.message}`,
+            { url, method, code: error.code }
+          );
+        }
+
+        if (error.response) {
+          // Server responded with error status
+          return createHTTPError(
+            `HTTP ${error.response.status}: ${error.response.statusText}`,
+            error.response.status,
+            {
+              url,
+              method,
+              responseData: error.response.data,
+              responseHeaders: error.response.headers,
+            }
+          );
+        }
+
+        // Request was made but no response received
+        return createNetworkError(
+          `Network error: ${error.message}`,
+          { url, method, error: error.toJSON() }
+        );
+      }
+
+      // Non-axios error
+      return createNetworkError(
+        `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { url, method, error }
+      );
+    }
+  }
+
+  /**
+   * Update client configuration
+   */
+  updateConfig(config: Partial<APIClientConfig>): void {
+    if (config.timeout !== undefined) {
+      this.config.timeout = config.timeout;
+      this.axios.defaults.timeout = config.timeout;
+    }
+
+    if (config.userAgent !== undefined) {
+      this.config.userAgent = config.userAgent;
+      this.axios.defaults.headers['User-Agent'] = config.userAgent;
+    }
+
+    if (config.maxRedirects !== undefined) {
+      this.config.maxRedirects = config.maxRedirects;
+      this.axios.defaults.maxRedirects = config.maxRedirects;
+    }
+
+    if (config.debug !== undefined) {
+      this.config.debug = config.debug;
+    }
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): Required<APIClientConfig> {
+    return { ...this.config };
+  }
+}

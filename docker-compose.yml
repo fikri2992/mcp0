@@ -1,38 +1,39 @@
 version: '3.8'
 
 services:
-  mcp-api-server:
+  # MCP Builder CLI service for code generation
+  mcp-builder:
     build: .
-    image: mcp-api-server:latest
-    container_name: mcp-api-server
-    restart: unless-stopped
+    image: mcp-builder:latest
+    container_name: mcp-builder
+    
+    # Mount current directory as workspace
+    volumes:
+      - .:/workspace
+      - ./output:/workspace/output
     
     # Environment variables
     environment:
       - NODE_ENV=production
       - DEBUG=false
-      - API_TIMEOUT=30000
-      - ALLOW_LOCALHOST=false
-      - ALLOW_PRIVATE_IPS=false
-      - MAX_RESPONSE_LENGTH=50000
-      - USER_AGENT=MCP-API-Server/1.0.0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    
+    # Override default command for interactive use
+    command: ["--help"]
     
     # Resource limits
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '1.0'
+          memory: 512M
         reservations:
-          cpus: '0.1'
-          memory: 64M
+          cpus: '0.2'
+          memory: 128M
     
     # Security settings
     security_opt:
       - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
     
     # Logging configuration
     logging:
@@ -43,35 +44,86 @@ services:
     
     # Health check
     healthcheck:
+      test: ["/app/dist/src/cli/cli-main.js", "--help"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Development version with debug enabled
+  mcp-builder-dev:
+    build: .
+    image: mcp-builder:latest
+    container_name: mcp-builder-dev
+    profiles:
+      - dev
+    
+    volumes:
+      - .:/workspace
+      - ./output:/workspace/output
+      - ./test-output:/workspace/test-output
+    
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    
+    command: ["--help"]
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Legacy MCP API Server (for backward compatibility)
+  mcp-api-server:
+    build: .
+    image: mcp-builder:latest
+    container_name: mcp-api-server
+    restart: unless-stopped
+    profiles:
+      - legacy
+    
+    # Override entrypoint to run the server instead of CLI
+    entrypoint: ["node", "/app/dist/src/index.js"]
+    
+    environment:
+      - NODE_ENV=production
+      - DEBUG=false
+      - API_TIMEOUT=30000
+      - ALLOW_LOCALHOST=false
+      - ALLOW_PRIVATE_IPS=false
+      - MAX_RESPONSE_LENGTH=50000
+      - USER_AGENT=MCP-API-Server/1.0.0
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    healthcheck:
       test: ["CMD", "node", "-e", "console.log('Health check passed')"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 10s
-
-  # Development version with debug enabled
-  mcp-api-server-dev:
-    build: .
-    image: mcp-api-server:latest
-    container_name: mcp-api-server-dev
-    restart: unless-stopped
-    profiles:
-      - dev
-    
-    environment:
-      - NODE_ENV=development
-      - DEBUG=true
-      - API_TIMEOUT=60000
-      - ALLOW_LOCALHOST=true
-      - ALLOW_PRIVATE_IPS=true
-      - MAX_RESPONSE_LENGTH=100000
-      - USER_AGENT=MCP-API-Server-Dev/1.0.0
-    
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.2'
-          memory: 128M

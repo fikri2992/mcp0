@@ -1,0 +1,272 @@
+import { APIResponse, ErrorResponse, MCPToolResponse } from './types.js';
+
+/**
+ * Configuration options for response formatting
+ */
+export interface ResponseFormatterConfig {
+  /** Include response headers in formatted output */
+  includeHeaders?: boolean;
+  /** Pretty print JSON responses */
+  prettyPrintJson?: boolean;
+  /** Maximum response length in characters */
+  maxResponseLength?: number;
+  /** Include response metadata */
+  includeMetadata?: boolean;
+  /** Enable debug logging */
+  debug?: boolean;
+}
+
+/**
+ * Response formatter for {{server.name}}
+ * Formats API responses and errors for MCP protocol
+ */
+export class ResponseFormatter {
+  private config: Required<ResponseFormatterConfig>;
+
+  constructor(config: ResponseFormatterConfig = {}) {
+    this.config = {
+      includeHeaders: config.includeHeaders ?? true,
+      prettyPrintJson: config.prettyPrintJson ?? true,
+      maxResponseLength: config.maxResponseLength ?? {{configuration.maxResponseLength}},
+      includeMetadata: config.includeMetadata ?? true,
+      debug: config.debug ?? false,
+    };
+
+    this.log('ResponseFormatter initialized', this.config);
+  }
+
+  /**
+   * Format successful API response for MCP protocol
+   */
+  formatResponse(response: APIResponse): MCPToolResponse {
+    try {
+      this.log('Formatting successful response', {
+        status: response.status,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+      });
+
+      let formattedText = '';
+
+      // Add status information
+      if (this.config.includeMetadata) {
+        formattedText += `HTTP ${response.status} ${response.statusText}\n\n`;
+      }
+
+      // Add headers if requested
+      if (this.config.includeHeaders && response.headers) {
+        formattedText += 'Headers:\n';
+        Object.entries(response.headers).forEach(([key, value]) => {
+          formattedText += `  ${key}: ${value}\n`;
+        });
+        formattedText += '\n';
+      }
+
+      // Add response body
+      if (response.data !== undefined && response.data !== null) {
+        formattedText += 'Response:\n';
+        
+        if (typeof response.data === 'string') {
+          formattedText += response.data;
+        } else {
+          // Format JSON data
+          try {
+            const jsonString = this.config.prettyPrintJson
+              ? JSON.stringify(response.data, null, 2)
+              : JSON.stringify(response.data);
+            formattedText += jsonString;
+          } catch (error) {
+            formattedText += `[Error formatting JSON: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+          }
+        }
+      } else {
+        formattedText += 'Response: (empty)';
+      }
+
+      // Truncate if too long
+      const truncatedText = this.truncateResponse(formattedText);
+
+      this.log('Response formatted successfully', {
+        originalLength: formattedText.length,
+        truncatedLength: truncatedText.length,
+        wasTruncated: formattedText.length !== truncatedText.length,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: truncatedText,
+          },
+        ],
+        isError: false,
+      };
+
+    } catch (error) {
+      this.log('Error formatting response', error);
+      
+      // Fallback formatting
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error formatting response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+
+  /**
+   * Format error response for MCP protocol
+   */
+  formatErrorResponse(errorResponse: ErrorResponse): MCPToolResponse {
+    try {
+      this.log('Formatting error response', {
+        errorType: errorResponse.error.type,
+        hasDetails: !!errorResponse.error.details,
+      });
+
+      let formattedText = '';
+
+      // Add error type and message
+      formattedText += `Error (${errorResponse.error.type}): ${errorResponse.error.message}\n`;
+
+      // Add status code if available
+      if (errorResponse.error.statusCode) {
+        formattedText += `Status Code: ${errorResponse.error.statusCode}\n`;
+      }
+
+      // Add error details if available and metadata is enabled
+      if (this.config.includeMetadata && errorResponse.error.details) {
+        formattedText += '\nDetails:\n';
+        
+        try {
+          const detailsString = this.config.prettyPrintJson
+            ? JSON.stringify(errorResponse.error.details, null, 2)
+            : JSON.stringify(errorResponse.error.details);
+          formattedText += detailsString;
+        } catch (error) {
+          formattedText += `[Error formatting details: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+        }
+      }
+
+      // Truncate if too long
+      const truncatedText = this.truncateResponse(formattedText);
+
+      this.log('Error response formatted successfully', {
+        originalLength: formattedText.length,
+        truncatedLength: truncatedText.length,
+        wasTruncated: formattedText.length !== truncatedText.length,
+      });
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: truncatedText,
+          },
+        ],
+        isError: true,
+      };
+
+    } catch (error) {
+      this.log('Error formatting error response', error);
+      
+      // Fallback error formatting
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Failed to format error response: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+
+  /**
+   * Truncate response text if it exceeds maximum length
+   */
+  private truncateResponse(text: string): string {
+    if (text.length <= this.config.maxResponseLength) {
+      return text;
+    }
+
+    const truncated = text.substring(0, this.config.maxResponseLength - 100);
+    const lastNewline = truncated.lastIndexOf('\n');
+    
+    // Try to truncate at a newline for better formatting
+    const cutPoint = lastNewline > truncated.length - 200 ? lastNewline : truncated.length;
+    
+    return truncated.substring(0, cutPoint) + 
+           `\n\n[Response truncated - showing first ${cutPoint} of ${text.length} characters]`;
+  }
+
+  /**
+   * Format response headers as a readable string
+   */
+  private formatHeaders(headers: Record<string, string>): string {
+    return Object.entries(headers)
+      .map(([key, value]) => `  ${key}: ${value}`)
+      .join('\n');
+  }
+
+  /**
+   * Detect if data is JSON and format accordingly
+   */
+  private formatData(data: any): string {
+    if (typeof data === 'string') {
+      // Try to parse as JSON for pretty printing
+      try {
+        const parsed = JSON.parse(data);
+        return this.config.prettyPrintJson
+          ? JSON.stringify(parsed, null, 2)
+          : data;
+      } catch {
+        // Not JSON, return as-is
+        return data;
+      }
+    }
+
+    // Object or other type - stringify
+    try {
+      return this.config.prettyPrintJson
+        ? JSON.stringify(data, null, 2)
+        : JSON.stringify(data);
+    } catch (error) {
+      return `[Error serializing data: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+    }
+  }
+
+  /**
+   * Update formatter configuration
+   */
+  updateConfig(config: Partial<ResponseFormatterConfig>): void {
+    Object.assign(this.config, config);
+    this.log('ResponseFormatter configuration updated', this.config);
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): Required<ResponseFormatterConfig> {
+    return { ...this.config };
+  }
+
+  /**
+   * Log messages with optional debug filtering
+   */
+  private log(message: string, data?: any): void {
+    if (this.config.debug) {
+      const timestamp = new Date().toISOString();
+      if (data !== undefined) {
+        console.error(`[${timestamp}] ResponseFormatter: ${message}`, data);
+      } else {
+        console.error(`[${timestamp}] ResponseFormatter: ${message}`);
+      }
+    }
+  }
+}

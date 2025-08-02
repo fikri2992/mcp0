@@ -1,0 +1,71 @@
+# Inline Code Documentation
+
+This document contains JSDoc comments that should be added to the generated code files.
+
+{{#each tools}}
+## handle{{pascalCase name}}
+
+```typescript
+/**
+ * {{description}}
+ * @param args - Tool arguments containing the API parameters
+ * @returns Promise<MCPToolResponse> - Tool response with API call results
+ * @throws {Error} When parameter validation fails or API call fails
+ */
+```
+
+## validate{{pascalCase name}}Params
+
+```typescript
+/**
+ * Validate parameters for {{name}} tool
+ * @param params - Parameters to validate against the tool schema
+ * @throws {ValidationError} When validation fails
+ */
+```
+
+{{/each}}
+
+{{#each apis}}
+## {{camelCase method}}{{pascalCase name}}
+
+```typescript
+/**
+ * {{#if description}}{{description}}{{else}}Call {{name}} API endpoint{{/if}}
+ * @param url - API endpoint URL
+ * @param options - Request options including headers and body
+ * @returns Promise<APIResponse> - API response with status, headers, and data
+ * @throws {Error} When HTTP request fails or response is invalid
+ */
+```
+
+{{/each}}
+
+## Error Handling Comments
+
+```typescript
+/**
+ * Handle API errors and convert them to MCP error responses
+ * @param error - The error that occurred during API call
+ * @param context - Additional context about the failed operation
+ * @returns MCPToolResponse with error information
+ */
+```
+
+```typescript
+/**
+ * Validate URL security and accessibility
+ * @param url - URL to validate
+ * @param config - Security configuration
+ * @throws {SecurityError} When URL is blocked for security reasons
+ */
+```
+
+```typescript
+/**
+ * Format successful API response for MCP client
+ * @param response - HTTP response from API call
+ * @param requestInfo - Information about the original request
+ * @returns MCPToolResponse with formatted content
+ */
+```

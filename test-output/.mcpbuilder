@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2025-08-02T12:15:53.688Z",
+  "generatedBy": "MCP Builder CLI",
+  "version": "1.0.0",
+  "projectName": "test-server",
+  "scaffoldedAt": "2025-08-02T12:15:53.699Z",
+  "directories": [
+    "src",
+    "tests",
+    "examples",
+    "docs"
+  ],
+  "fileCount": 1
+}

@@ -1,6 +1,6 @@
-# Deployment Guide
+# MCP Builder CLI Deployment Guide
 
-This guide covers how to deploy the MCP API Server using different methods.
+This guide covers how to deploy the MCP Builder CLI using different methods.
 
 ## NPM/NPX Deployment
 
@@ -13,8 +13,9 @@ This guide covers how to deploy the MCP API Server using different methods.
    
    # Test the package locally
    npm pack
-   npm install -g ./mcp-api-server-1.0.0.tgz
-   mcp-api-server --help
+   npm install -g ./mcp-builder-1.0.0.tgz
+   mcp-builder --help
+   mcp-builder generate --help
    ```
 
 2. **Login to NPM:**
@@ -34,7 +35,7 @@ This guide covers how to deploy the MCP API Server using different methods.
 
 4. **Verify publication:**
    ```bash
-   npx mcp-api-server --help
+   npx mcp-builder --help
    ```
 
 ### Using the Published Package
@@ -43,11 +44,11 @@ Once published, users can run it with:
 
 ```bash
 # Run directly with npx
-npx mcp-api-server
+npx mcp-builder generate api.md -o output/
 
 # Or install globally
-npm install -g mcp-api-server
-mcp-api-server
+npm install -g mcp-builder
+mcp-builder generate api.md -o output/
 ```
 
 ### MCP Client Configuration

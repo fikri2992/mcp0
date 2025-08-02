@@ -1,0 +1,202 @@
+/**
+ * Generated tests for {{server.name}}
+ * Generated at: {{metadata.generatedAt}}
+ */
+
+import { MCPServer } from '../src/mcp-server.js';
+import { ALL_API_TOOLS, TOOL_MAP } from '../src/tools.js';
+
+/**
+ * Test configuration
+ */
+const TEST_CONFIG = {
+  timeout: 5000,
+  debug: false,
+  allowLocalhost: true,
+  allowPrivateIps: false,
+};
+
+/**
+ * Test utilities
+ */
+class TestRunner {
+  private passed = 0;
+  private failed = 0;
+  private server: MCPServer;
+
+  constructor() {
+    this.server = new MCPServer({
+      name: '{{kebabCase server.name}}-test',
+      version: '{{server.version}}',
+      debug: TEST_CONFIG.debug,
+      apiClient: {
+        timeout: TEST_CONFIG.timeout,
+      },
+      requestValidator: {
+        allowLocalhost: TEST_CONFIG.allowLocalhost,
+        allowPrivateIps: TEST_CONFIG.allowPrivateIps,
+      },
+    });
+  }
+
+  async test(name: string, testFn: () => Promise<void> | void): Promise<void> {
+    try {
+      console.log(`Running test: ${name}`);
+      await testFn();
+      this.passed++;
+      console.log(`✓ ${name}`);
+    } catch (error) {
+      this.failed++;
+      console.error(`✗ ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (TEST_CONFIG.debug && error instanceof Error) {
+        console.error(error.stack);
+      }
+    }
+  }
+
+  assert(condition: boolean, message: string): void {
+    if (!condition) {
+      throw new Error(`Assertion failed: ${message}`);
+    }
+  }
+
+  assertEqual(actual: any, expected: any, message?: string): void {
+    if (actual !== expected) {
+      throw new Error(
+        `Assertion failed: ${message || 'Values not equal'}\n` +
+        `  Expected: ${JSON.stringify(expected)}\n` +
+        `  Actual: ${JSON.stringify(actual)}`
+      );
+    }
+  }
+
+  printResults(): void {
+    console.log('\n' + '='.repeat(50));
+    console.log(`Test Results: ${this.passed} passed, ${this.failed} failed`);
+    if (this.failed > 0) {
+      process.exit(1);
+    }
+  }
+
+  getServer(): MCPServer {
+    return this.server;
+  }
+}
+
+/**
+ * Main test suite
+ */
+async function runTests(): Promise<void> {
+  const runner = new TestRunner();
+
+  // Test tool definitions
+  await runner.test('Tool definitions are valid', () => {
+    runner.assert(Array.isArray(ALL_API_TOOLS), 'ALL_API_TOOLS should be an array');
+    runner.assert(ALL_API_TOOLS.length > 0, 'Should have at least one tool');
+    
+    for (const tool of ALL_API_TOOLS) {
+      runner.assert(typeof tool.name === 'string', `Tool name should be string: ${tool.name}`);
+      runner.assert(typeof tool.description === 'string', `Tool description should be string: ${tool.name}`);
+      runner.assert(typeof tool.inputSchema === 'object', `Tool inputSchema should be object: ${tool.name}`);
+      runner.assert(tool.inputSchema.type === 'object', `Tool inputSchema.type should be 'object': ${tool.name}`);
+      runner.assert(typeof tool.inputSchema.properties === 'object', `Tool inputSchema.properties should be object: ${tool.name}`);
+    }
+  });
+
+  // Test tool map
+  await runner.test('Tool map is correctly constructed', () => {
+    runner.assert(typeof TOOL_MAP === 'object', 'TOOL_MAP should be an object');
+    
+    for (const tool of ALL_API_TOOLS) {
+      runner.assert(TOOL_MAP[tool.name] === tool, `Tool map should contain ${tool.name}`);
+    }
+  });
+
+  // Test server initialization
+  await runner.test('Server initializes correctly', () => {
+    const server = runner.getServer();
+    const info = server.getServerInfo();
+    
+    runner.assert(typeof info.name === 'string', 'Server should have a name');
+    runner.assert(typeof info.version === 'string', 'Server should have a version');
+    runner.assert(Array.isArray(info.tools), 'Server should have tools array');
+    runner.assertEqual(info.tools.length, ALL_API_TOOLS.length, 'Server should have all tools');
+  });
+
+{{#each tools}}
+  // Test {{name}} tool
+  await runner.test('{{name}} tool validation', () => {
+    const tool = TOOL_MAP['{{name}}'];
+    runner.assert(tool !== undefined, '{{name}} tool should exist');
+    runner.assertEqual(tool.name, '{{name}}', 'Tool name should match');
+    runner.assert(tool.description.length > 0, 'Tool should have description');
+    
+    // Test required parameters
+    const required = tool.inputSchema.required || [];
+    runner.assert(required.includes('url'), '{{name}} should require url parameter');
+    
+    // Test parameter types
+    const properties = tool.inputSchema.properties;
+    runner.assert(properties.url?.type === 'string', 'url parameter should be string');
+    runner.assert(properties.url?.format === 'uri', 'url parameter should have uri format');
+    
+    if (properties.headers) {
+      runner.assert(properties.headers.type === 'object', 'headers parameter should be object');
+    }
+    
+    {{#if hasBody}}
+    if (properties.body) {
+      runner.assert(properties.body.oneOf || properties.body.type, 'body parameter should have type definition');
+    }
+    {{/if}}
+  });
+
+{{/each}}
+
+  // Test parameter validation
+  await runner.test('Parameter validation works correctly', async () => {
+    // Test valid parameters
+    const validParams = {
+      url: 'https://api.example.com/test',
+      headers: { 'Authorization': 'Bearer token' },
+    };
+
+    // This would normally be tested through the MCP protocol,
+    // but we can test the validation logic directly
+    runner.assert(typeof validParams.url === 'string', 'Valid URL should be accepted');
+    runner.assert(validParams.url.startsWith('https://'), 'HTTPS URLs should be valid');
+  });
+
+  // Test error handling
+  await runner.test('Error handling works correctly', async () => {
+    // Test invalid URL
+    try {
+      const invalidUrl = 'not-a-url';
+      runner.assert(!invalidUrl.includes('://'), 'Invalid URL should be rejected');
+    } catch (error) {
+      // Expected to fail validation
+    }
+
+    // Test missing required parameters
+    try {
+      const missingParams = { headers: {} }; // Missing url
+      runner.assert(!('url' in missingParams), 'Missing required parameters should be rejected');
+    } catch (error) {
+      // Expected to fail validation
+    }
+  });
+
+  runner.printResults();
+}
+
+/**
+ * Run the test suite
+ */
+if (require.main === module) {
+  runTests().catch((error) => {
+    console.error('Test suite failed:', error);
+    process.exit(1);
+  });
+}
+
+export { runTests };

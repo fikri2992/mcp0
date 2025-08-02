@@ -1,0 +1,314 @@
+/**
+ * Generated TypeScript type definitions for {{server.name}}
+ * This file contains type definitions for the MCP server API
+ * Generated automatically on {{metadata.generatedAt}} - do not edit manually
+ */
+
+import { JSONSchema } from '@modelcontextprotocol/sdk/types.js';
+
+// =============================================================================
+// Core Types
+// =============================================================================
+
+/**
+ * Supported HTTP methods for API calls
+ */
+export type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+/**
+ * Standard API error response
+ */
+export interface APIError {
+  /** Error type */
+  type: 'validation' | 'network' | 'http' | 'parsing';
+  /** Error message */
+  message: string;
+  /** HTTP status code (if applicable) */
+  statusCode?: number;
+  /** Additional error details */
+  details?: any;
+}
+
+/**
+ * Standard API response wrapper
+ */
+export interface APIResponse<T = any> {
+  /** Response status code */
+  status: number;
+  /** Response status text */
+  statusText: string;
+  /** Response headers */
+  headers: Record<string, string>;
+  /** Response data */
+  data: T;
+}
+
+/**
+ * Error response wrapper
+ */
+export interface ErrorResponse {
+  error: APIError;
+}
+
+// =============================================================================
+// Tool Parameter Types
+// =============================================================================
+
+{{#each tools}}
+/**
+ * Parameters for {{name}} tool
+ * {{description}}
+ */
+export interface {{pascalCase name}}Params {
+{{#each inputSchema.properties}}
+  {{#if description}}/** {{description}} */{{/if}}
+  {{@key}}{{#unless (includes ../inputSchema.required @key)}}?{{/unless}}: {{parameterType this}};
+{{/each}}
+}
+
+{{/each}}
+
+// =============================================================================
+// API Request/Response Types
+// =============================================================================
+
+{{#each apis}}
+{{#if parameters}}
+/**
+ * Request parameters for {{name}} API
+ * {{#if description}}{{description}}{{else}}No description available{{/if}}
+ */
+export interface {{pascalCase name}}Request {
+{{#each parameters}}
+  {{#if description}}/** {{description}} */{{/if}}
+  {{name}}{{#unless required}}?{{/unless}}: {{mapParameterTypeToTypeScript type}};
+{{/each}}
+}
+
+{{/if}}
+/**
+ * Response type for {{name}} API
+ * {{#if description}}{{description}}{{else}}No description available{{/if}}
+ */
+export interface {{pascalCase name}}Response extends APIResponse {
+  /** Response data specific to {{name}} */
+  data: any; // TODO: Define specific response type based on API documentation
+}
+
+{{/each}}
+
+// =============================================================================
+// MCP Tool Types
+// =============================================================================
+
+/**
+ * MCP tool definition
+ */
+export interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: JSONSchema;
+}
+
+/**
+ * MCP tool call request
+ */
+export interface MCPToolCall {
+  name: string;
+  arguments: Record<string, any>;
+}
+
+/**
+ * MCP tool call response
+ */
+export interface MCPToolResponse {
+  content: Array<{
+    type: 'text';
+    text: string;
+  }>;
+  isError?: boolean;
+}
+
+// =============================================================================
+// Server Configuration Types
+// =============================================================================
+
+/**
+ * Server configuration options
+ */
+export interface ServerConfig {
+  /** Request timeout in milliseconds */
+  timeout: number;
+  /** Maximum response length in bytes */
+  maxResponseLength: number;
+  /** Allow requests to localhost */
+  allowLocalhost: boolean;
+  /** Allow requests to private IP ranges */
+  allowPrivateIps: boolean;
+  /** User agent string */
+  userAgent: string;
+  /** Enable debug logging */
+  debug?: boolean;
+}
+
+/**
+ * Tool handler function type
+ */
+export type ToolHandler<TParams = any, TResult = any> = (
+  params: TParams
+) => Promise<MCPToolResponse>;
+
+// =============================================================================
+// Utility Types
+// =============================================================================
+
+/**
+ * Extract parameter type from tool name
+ */
+export type ToolParams<T extends string> = 
+{{#each tools}}
+  T extends '{{name}}' ? {{pascalCase name}}Params :
+{{/each}}
+  never;
+
+/**
+ * Extract response type from API name
+ */
+export type APIResponseType<T extends string> = 
+{{#each apis}}
+  T extends '{{name}}' ? {{pascalCase name}}Response :
+{{/each}}
+  never;
+
+// =============================================================================
+// Type Guards
+// =============================================================================
+
+/**
+ * Type guard to check if a value is a valid HTTP method
+ */
+export function isValidHTTPMethod(method: string): method is HTTPMethod {
+  return ['GET', 'POST', 'PUT', 'DELETE'].includes(method as HTTPMethod);
+}
+
+/**
+ * Type guard to check if a response is an error response
+ */
+export function isErrorResponse(response: any): response is ErrorResponse {
+  return response && typeof response === 'object' && 'error' in response;
+}
+
+/**
+ * Type guard to check if a tool call is valid
+ */
+export function isValidToolCall(call: any): call is MCPToolCall {
+  return (
+    call &&
+    typeof call === 'object' &&
+    typeof call.name === 'string' &&
+    typeof call.arguments === 'object'
+  );
+}
+
+// =============================================================================
+// Validation Schemas (Zod-compatible)
+// =============================================================================
+
+{{#if includeValidationSchemas}}
+import { z } from 'zod';
+
+{{#each tools}}
+/**
+ * Validation schema for {{name}} tool parameters
+ */
+export const {{pascalCase name}}ParamsSchema = z.object({
+{{#each inputSchema.properties}}
+  {{@key}}: {{zodSchemaFromType this}}{{#unless (includes ../inputSchema.required @key)}}.optional(){{/unless}},
+{{/each}}
+});
+
+{{/each}}
+
+{{#each apis}}
+{{#if parameters}}
+/**
+ * Validation schema for {{name}} API request
+ */
+export const {{pascalCase name}}RequestSchema = z.object({
+{{#each parameters}}
+  {{name}}: {{zodSchemaFromParameterType type}}{{#unless required}}.optional(){{/unless}},
+{{/each}}
+});
+
+{{/if}}
+{{/each}}
+
+/**
+ * Validation schema for API errors
+ */
+export const APIErrorSchema = z.object({
+  type: z.enum(['validation', 'network', 'http', 'parsing']),
+  message: z.string(),
+  statusCode: z.number().optional(),
+  details: z.any().optional(),
+});
+
+/**
+ * Validation schema for MCP tool calls
+ */
+export const MCPToolCallSchema = z.object({
+  name: z.string(),
+  arguments: z.record(z.any()),
+});
+
+{{/if}}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Available tool names
+ */
+export const TOOL_NAMES = [
+{{#each tools}}
+  '{{name}}',
+{{/each}}
+] as const;
+
+/**
+ * Available API endpoints
+ */
+export const API_ENDPOINTS = [
+{{#each apis}}
+  '{{name}}',
+{{/each}}
+] as const;
+
+/**
+ * HTTP methods used by this server
+ */
+export const HTTP_METHODS = [
+{{#each (unique (pluck apis "method"))}}
+  '{{this}}',
+{{/each}}
+] as const;
+
+// =============================================================================
+// Generated Metadata
+// =============================================================================
+
+/**
+ * Information about the generated server
+ */
+export const GENERATED_METADATA = {
+  serverName: '{{server.name}}',
+  serverVersion: '{{server.version}}',
+  generatedAt: '{{metadata.generatedAt}}',
+  generatedBy: '{{metadata.generatedBy}}',
+  toolCount: {{tools.length}},
+  apiCount: {{apis.length}},
+{{#if metadata.sourceFile}}
+  sourceFile: '{{metadata.sourceFile}}',
+{{/if}}
+} as const;

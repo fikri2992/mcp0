@@ -1,62 +1,86 @@
 {
-  "name": "mcp-api-server",
+  "name": "mcp-builder",
   "version": "1.0.0",
-  "description": "A Model Context Protocol server for making HTTP API calls",
-  "main": "dist/index.js",
+  "description": "MCP Builder CLI - Generate MCP servers from API specifications",
+  "main": "dist/src/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "mcp-api-server": "dist/index.js"
+    "mcp-builder": "dist/src/cli/cli-main.js",
+    "mcp-api-server": "dist/src/index.js"
   },
   "files": [
     "dist/**/*",
+    "templates/**/*",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "DEPLOYMENT.md"
   ],
   "scripts": {
     "build": "tsc",
+    "build:cli": "tsc && chmod +x dist/src/cli/cli-main.js",
+    "build:server": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/index.js",
-    "start:debug": "node dist/index.js --debug",
-    "start:dev": "DEBUG=true ALLOW_LOCALHOST=true node dist/index.js",
+    "dev:cli": "tsc --watch",
+    "start": "node dist/src/index.js",
+    "start:debug": "node dist/src/index.js --debug",
+    "start:dev": "DEBUG=true ALLOW_LOCALHOST=true node dist/src/index.js",
+    "cli": "node dist/src/cli/cli-main.js",
+    "cli:help": "node dist/src/cli/cli-main.js --help",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "prepublishOnly": "npm run build",
     "test": "npm run build && npm run test:all",
     "test:all": "node dist/tests/run-all-tests.js",
+    "test:cli": "npm run build && node dist/tests/cli-integration.test.js",
     "test:validation": "node dist/tests/api-request-validation.test.js",
     "test:handlers": "node dist/tests/tool-handlers.test.js",
     "test:flow": "node dist/tests/complete-flow.test.js",
     "test:types": "node dist/tests/response-types.test.js",
-    "test:validator": "node dist/tests/request-validator.test.js"
+    "test:validator": "node dist/tests/request-validator.test.js",
+    "lint": "echo 'Linting not configured yet'",
+    "format": "echo 'Formatting not configured yet'",
+    "deploy:npm": "npm run build && npm pack",
+    "deploy:test": "npm run test && npm run deploy:npm"
   },
   "keywords": [
-    "mcp", 
-    "api", 
-    "http", 
-    "server", 
-    "typescript", 
+    "mcp",
+    "mcp-builder",
+    "cli",
+    "code-generator",
+    "api",
+    "http",
+    "server",
+    "typescript",
     "model-context-protocol",
     "rest-api",
-    "http-client"
+    "http-client",
+    "openai",
+    "ai-powered"
   ],
   "author": "Your Name <your.email@example.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/mcp-api-server.git"
+    "url": "https://github.com/yourusername/mcp-builder.git"
   },
-  "homepage": "https://github.com/yourusername/mcp-api-server#readme",
+  "homepage": "https://github.com/yourusername/mcp-builder#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/mcp-api-server/issues"
+    "url": "https://github.com/yourusername/mcp-builder/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
+    "ai": "^3.0.0",
     "axios": "^1.6.0",
+    "commander": "^11.0.0",
+    "handlebars": "^4.7.8",
+    "openai": "^4.0.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@vitest/ui": "^3.2.4",
+    "rimraf": "^5.0.0",
     "typescript": "^5.0.0",
-    "rimraf": "^5.0.0"
+    "vitest": "^3.2.4"
   }
 }

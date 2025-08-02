@@ -1,0 +1,358 @@
+import { z } from 'zod';
+import {
+  APIRequest,
+  ToolCallParams,
+  ErrorResponse,
+  validateToolParams,
+  createValidationError,
+  isValidURL,
+  isValidHTTPMethod,
+} from './types.js';
+
+/**
+ * Configuration options for request validation
+ */
+export interface RequestValidatorConfig {
+  /** Allow requests to localhost/127.0.0.1 */
+  allowLocalhost?: boolean;
+  /** Allow requests to private IP ranges */
+  allowPrivateIps?: boolean;
+  /** Maximum URL length */
+  maxUrlLength?: number;
+  /** Maximum header count */
+  maxHeaderCount?: number;
+  /** Maximum body size in bytes */
+  maxBodySize?: number;
+  /** Enable debug logging */
+  debug?: boolean;
+}
+
+/**
+ * Request validator for {{server.name}}
+ * Validates API requests and tool parameters
+ */
+export class RequestValidator {
+  private config: Required<RequestValidatorConfig>;
+
+  constructor(config: RequestValidatorConfig = {}) {
+    this.config = {
+      allowLocalhost: config.allowLocalhost ?? {{configuration.allowLocalhost}},
+      allowPrivateIps: config.allowPrivateIps ?? {{configuration.allowPrivateIps}},
+      maxUrlLength: config.maxUrlLength ?? 2048,
+      maxHeaderCount: config.maxHeaderCount ?? 50,
+      maxBodySize: config.maxBodySize ?? 10 * 1024 * 1024, // 10MB
+      debug: config.debug ?? false,
+    };
+
+    this.log('RequestValidator initialized', this.config);
+  }
+
+  /**
+   * Validate tool call parameters
+   */
+  validateToolCall(toolName: string, params: unknown): ToolCallParams | ErrorResponse {
+    try {
+      this.log(`Validating tool call: ${toolName}`, params);
+
+      // Validate tool parameters using generated schemas
+      const validatedParams = validateToolParams(toolName, params);
+
+      // Additional URL validation
+      const urlValidation = this.validateURL(validatedParams.url);
+      if ('error' in urlValidation) {
+        return urlValidation;
+      }
+
+      // Validate headers if present
+      if (validatedParams.headers) {
+        const headerValidation = this.validateHeaders(validatedParams.headers);
+        if ('error' in headerValidation) {
+          return headerValidation;
+        }
+      }
+
+      // Validate body if present
+      if ('body' in validatedParams && validatedParams.body !== undefined) {
+        const bodyValidation = this.validateBody(validatedParams.body);
+        if ('error' in bodyValidation) {
+          return bodyValidation;
+        }
+      }
+
+      this.log(`Tool call validation successful: ${toolName}`);
+      return validatedParams;
+
+    } catch (error) {
+      this.log(`Tool call validation failed: ${toolName}`, error);
+      
+      if (error instanceof z.ZodError) {
+        return createValidationError(
+          `Invalid parameters for tool ${toolName}: ${error.errors.map(e => e.message).join(', ')}`,
+          { zodErrors: error.errors, toolName, params }
+        );
+      }
+
+      return createValidationError(
+        `Parameter validation failed for tool ${toolName}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { toolName, params, error }
+      );
+    }
+  }
+
+  /**
+   * Validate API request
+   */
+  validateAPIRequest(request: APIRequest): APIRequest | ErrorResponse {
+    try {
+      this.log('Validating API request', {
+        method: request.method,
+        url: request.url,
+        hasHeaders: !!request.headers,
+        hasBody: !!request.body,
+      });
+
+      // Validate HTTP method
+      if (!isValidHTTPMethod(request.method)) {
+        return createValidationError(
+          `Invalid HTTP method: ${request.method}`,
+          { method: request.method, allowedMethods: [{{#each apis}}'{{method}}'{{#unless @last}}, {{/unless}}{{/each}}] }
+        );
+      }
+
+      // Validate URL
+      const urlValidation = this.validateURL(request.url);
+      if ('error' in urlValidation) {
+        return urlValidation;
+      }
+
+      // Validate headers
+      if (request.headers) {
+        const headerValidation = this.validateHeaders(request.headers);
+        if ('error' in headerValidation) {
+          return headerValidation;
+        }
+      }
+
+      // Validate body
+      if (request.body !== undefined) {
+        const bodyValidation = this.validateBody(request.body);
+        if ('error' in bodyValidation) {
+          return bodyValidation;
+        }
+      }
+
+      this.log('API request validation successful');
+      return request;
+
+    } catch (error) {
+      this.log('API request validation failed', error);
+      return createValidationError(
+        `API request validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { request, error }
+      );
+    }
+  }
+
+  /**
+   * Validate URL format and security restrictions
+   */
+  private validateURL(url: string): { valid: true } | ErrorResponse {
+    // Basic URL format validation
+    if (!isValidURL(url)) {
+      return createValidationError('Invalid URL format', { url });
+    }
+
+    // URL length validation
+    if (url.length > this.config.maxUrlLength) {
+      return createValidationError(
+        `URL too long: ${url.length} characters (max: ${this.config.maxUrlLength})`,
+        { url, length: url.length, maxLength: this.config.maxUrlLength }
+      );
+    }
+
+    try {
+      const parsedUrl = new URL(url);
+
+      // Protocol validation
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return createValidationError(
+          `Unsupported protocol: ${parsedUrl.protocol}`,
+          { url, protocol: parsedUrl.protocol }
+        );
+      }
+
+      // Localhost validation
+      if (!this.config.allowLocalhost && this.isLocalhost(parsedUrl.hostname)) {
+        return createValidationError(
+          'Requests to localhost are not allowed',
+          { url, hostname: parsedUrl.hostname }
+        );
+      }
+
+      // Private IP validation
+      if (!this.config.allowPrivateIps && this.isPrivateIP(parsedUrl.hostname)) {
+        return createValidationError(
+          'Requests to private IP addresses are not allowed',
+          { url, hostname: parsedUrl.hostname }
+        );
+      }
+
+      return { valid: true };
+
+    } catch (error) {
+      return createValidationError(
+        `URL parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { url, error }
+      );
+    }
+  }
+
+  /**
+   * Validate request headers
+   */
+  private validateHeaders(headers: Record<string, string>): { valid: true } | ErrorResponse {
+    // Header count validation
+    const headerCount = Object.keys(headers).length;
+    if (headerCount > this.config.maxHeaderCount) {
+      return createValidationError(
+        `Too many headers: ${headerCount} (max: ${this.config.maxHeaderCount})`,
+        { headerCount, maxHeaderCount: this.config.maxHeaderCount }
+      );
+    }
+
+    // Validate individual headers
+    for (const [name, value] of Object.entries(headers)) {
+      // Header name validation
+      if (!name || typeof name !== 'string') {
+        return createValidationError('Invalid header name', { headerName: name });
+      }
+
+      // Header value validation
+      if (typeof value !== 'string') {
+        return createValidationError(
+          `Invalid header value for ${name}: must be string`,
+          { headerName: name, headerValue: value }
+        );
+      }
+
+      // Check for dangerous headers
+      const lowerName = name.toLowerCase();
+      if (['host', 'content-length', 'transfer-encoding'].includes(lowerName)) {
+        return createValidationError(
+          `Header ${name} is not allowed`,
+          { headerName: name, reason: 'Restricted header' }
+        );
+      }
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Validate request body
+   */
+  private validateBody(body: string | object): { valid: true } | ErrorResponse {
+    let bodySize: number;
+
+    if (typeof body === 'string') {
+      bodySize = Buffer.byteLength(body, 'utf8');
+    } else {
+      try {
+        const jsonString = JSON.stringify(body);
+        bodySize = Buffer.byteLength(jsonString, 'utf8');
+      } catch (error) {
+        return createValidationError(
+          'Invalid body: cannot serialize to JSON',
+          { body, error }
+        );
+      }
+    }
+
+    // Body size validation
+    if (bodySize > this.config.maxBodySize) {
+      return createValidationError(
+        `Request body too large: ${bodySize} bytes (max: ${this.config.maxBodySize})`,
+        { bodySize, maxBodySize: this.config.maxBodySize }
+      );
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Check if hostname is localhost
+   */
+  private isLocalhost(hostname: string): boolean {
+    const localhostPatterns = [
+      'localhost',
+      '127.0.0.1',
+      '::1',
+      '0.0.0.0',
+    ];
+    return localhostPatterns.includes(hostname.toLowerCase());
+  }
+
+  /**
+   * Check if hostname is a private IP address
+   */
+  private isPrivateIP(hostname: string): boolean {
+    // IPv4 private ranges
+    const ipv4PrivateRanges = [
+      /^10\./,                    // 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+      /^192\.168\./,              // 192.168.0.0/16
+      /^169\.254\./,              // 169.254.0.0/16 (link-local)
+    ];
+
+    // Check IPv4 private ranges
+    for (const range of ipv4PrivateRanges) {
+      if (range.test(hostname)) {
+        return true;
+      }
+    }
+
+    // IPv6 private ranges (simplified check)
+    if (hostname.includes(':')) {
+      // fc00::/7 (unique local addresses)
+      if (hostname.toLowerCase().startsWith('fc') || hostname.toLowerCase().startsWith('fd')) {
+        return true;
+      }
+      // fe80::/10 (link-local)
+      if (hostname.toLowerCase().startsWith('fe8') || hostname.toLowerCase().startsWith('fe9') ||
+          hostname.toLowerCase().startsWith('fea') || hostname.toLowerCase().startsWith('feb')) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Update validator configuration
+   */
+  updateConfig(config: Partial<RequestValidatorConfig>): void {
+    Object.assign(this.config, config);
+    this.log('RequestValidator configuration updated', this.config);
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): Required<RequestValidatorConfig> {
+    return { ...this.config };
+  }
+
+  /**
+   * Log messages with optional debug filtering
+   */
+  private log(message: string, data?: any): void {
+    if (this.config.debug) {
+      const timestamp = new Date().toISOString();
+      if (data !== undefined) {
+        console.error(`[${timestamp}] RequestValidator: ${message}`, data);
+      } else {
+        console.error(`[${timestamp}] RequestValidator: ${message}`);
+      }
+    }
+  }
+}

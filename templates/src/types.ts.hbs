@@ -1,0 +1,331 @@
+import { z } from 'zod';
+
+// =============================================================================
+// Generated Types for {{server.name}}
+// Generated at: {{metadata.generatedAt}}
+// =============================================================================
+
+/**
+ * Supported HTTP methods for API calls
+ */
+export type HTTPMethod = {{#each apis}}'{{method}}'{{#unless @last}} | {{/unless}}{{/each}};
+
+/**
+ * API request interface
+ */
+export interface APIRequest {
+  url: string;
+  method: HTTPMethod;
+  headers?: Record<string, string>;
+  body?: string | object;
+}
+
+/**
+ * API response interface
+ */
+export interface APIResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  data: any;
+}
+
+/**
+ * Error types that can occur during API calls
+ */
+export type ErrorType = 'validation' | 'network' | 'http' | 'parsing';
+
+/**
+ * Error response interface
+ */
+export interface APIError {
+  type: ErrorType;
+  message: string;
+  statusCode?: number;
+  details?: any;
+}
+
+/**
+ * Complete error response structure
+ */
+export interface ErrorResponse {
+  error: APIError;
+}
+
+// =============================================================================
+// Tool Parameter Types
+// =============================================================================
+
+/**
+ * Base parameters for all API tool calls
+ */
+export interface BaseToolParams {
+  url: string;
+  headers?: Record<string, string>;
+}
+
+{{#each tools}}
+/**
+ * Parameters for {{name}} tool
+ * {{description}}
+ */
+export interface {{pascalCase name}}Params extends BaseToolParams {
+{{#if hasBody}}
+  body?: string | object;
+{{/if}}
+{{#each parameters}}
+  {{#unless (eq name "url")}}{{#unless (eq name "headers")}}
+  {{name}}{{#unless required}}?{{/unless}}: {{parameterType this}};
+  {{/unless}}{{/unless}}
+{{/each}}
+}
+
+{{/each}}
+
+/**
+ * Union type for all tool parameters
+ */
+export type ToolCallParams = {{#each tools}}{{pascalCase name}}Params{{#unless @last}} | {{/unless}}{{/each}};
+
+// =============================================================================
+// API-Specific Types
+// =============================================================================
+
+{{#each apis}}
+/**
+ * {{name}} API specification
+ * {{#if description}}{{description}}{{else}}No description available{{/if}}
+ */
+export interface {{pascalCase name}}Request {
+  url: string;
+  method: '{{method}}';
+{{#if headers}}
+  headers: {
+{{#each headers}}
+    '{{@key}}': string;
+{{/each}}
+  };
+{{/if}}
+{{#if body}}
+  body?: {{#if (eq method "GET")}}never{{else}}string | object{{/if}};
+{{/if}}
+{{#if parameters}}
+  parameters?: {
+{{#each parameters}}
+    {{name}}{{#unless required}}?{{/unless}}: {{parameterType this}};
+{{/each}}
+  };
+{{/if}}
+}
+
+{{/each}}
+
+// =============================================================================
+// MCP Protocol Types
+// =============================================================================
+
+/**
+ * MCP tool definition structure
+ */
+export interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+}
+
+/**
+ * MCP tool call request structure
+ */
+export interface MCPToolCall {
+  name: string;
+  arguments: Record<string, any>;
+}
+
+/**
+ * MCP tool call response structure
+ */
+export interface MCPToolResponse {
+  content: Array<{
+    type: 'text';
+    text: string;
+  }>;
+  isError?: boolean;
+}
+
+// =============================================================================
+// Zod Validation Schemas
+// =============================================================================
+
+/**
+ * Schema for validating HTTP methods
+ */
+export const HTTPMethodSchema = z.enum([{{#each apis}}'{{method}}'{{#unless @last}}, {{/unless}}{{/each}}]);
+
+/**
+ * Schema for validating URLs
+ */
+export const URLSchema = z.string().url('Invalid URL format');
+
+/**
+ * Schema for validating headers
+ */
+export const HeadersSchema = z.record(z.string()).optional();
+
+/**
+ * Schema for validating request body (can be string or object)
+ */
+export const BodySchema = z.union([z.string(), z.record(z.any())]).optional();
+
+/**
+ * Base schema for all tool parameters
+ */
+export const BaseToolParamsSchema = z.object({
+  url: URLSchema,
+  headers: HeadersSchema,
+});
+
+{{#each tools}}
+/**
+ * Schema for {{name}} tool parameters
+ */
+export const {{pascalCase name}}ParamsSchema = BaseToolParamsSchema.extend({
+{{#if hasBody}}
+  body: BodySchema,
+{{/if}}
+{{#each parameters}}
+  {{#unless (eq name "url")}}{{#unless (eq name "headers")}}
+  {{name}}: {{#eq type "string"}}z.string(){{/eq}}{{#eq type "number"}}z.number(){{/eq}}{{#eq type "boolean"}}z.boolean(){{/eq}}{{#eq type "object"}}z.record(z.any()){{/eq}}{{#eq type "array"}}z.array(z.any()){{/eq}}{{#unless required}}.optional(){{/unless}},
+  {{/unless}}{{/unless}}
+{{/each}}
+});
+
+{{/each}}
+
+/**
+ * Schema for validating API requests
+ */
+export const APIRequestSchema = z.object({
+  url: URLSchema,
+  method: HTTPMethodSchema,
+  headers: HeadersSchema,
+  body: BodySchema,
+});
+
+/**
+ * Schema for validating error types
+ */
+export const ErrorTypeSchema = z.enum(['validation', 'network', 'http', 'parsing']);
+
+/**
+ * Schema for validating API errors
+ */
+export const APIErrorSchema = z.object({
+  type: ErrorTypeSchema,
+  message: z.string(),
+  statusCode: z.number().optional(),
+  details: z.any().optional(),
+});
+
+/**
+ * Schema for validating error responses
+ */
+export const ErrorResponseSchema = z.object({
+  error: APIErrorSchema,
+});
+
+/**
+ * Schema for validating MCP tool calls
+ */
+export const MCPToolCallSchema = z.object({
+  name: z.string(),
+  arguments: z.record(z.any()),
+});
+
+// =============================================================================
+// Type Guards and Validation Helpers
+// =============================================================================
+
+/**
+ * Type guard to check if a value is a valid HTTP method
+ */
+export function isValidHTTPMethod(method: string): method is HTTPMethod {
+  return HTTPMethodSchema.safeParse(method).success;
+}
+
+/**
+ * Type guard to check if a value is a valid URL
+ */
+export function isValidURL(url: string): boolean {
+  return URLSchema.safeParse(url).success;
+}
+
+/**
+ * Validates tool parameters based on the tool name
+ */
+export function validateToolParams(toolName: string, params: unknown): ToolCallParams {
+  switch (toolName) {
+{{#each tools}}
+    case '{{name}}':
+      return {{pascalCase name}}ParamsSchema.parse(params);
+{{/each}}
+    default:
+      throw new Error(`Unknown tool: ${toolName}`);
+  }
+}
+
+/**
+ * Creates a validation error response
+ */
+export function createValidationError(message: string, details?: any): ErrorResponse {
+  return {
+    error: {
+      type: 'validation',
+      message,
+      details,
+    },
+  };
+}
+
+/**
+ * Creates a network error response
+ */
+export function createNetworkError(message: string, details?: any): ErrorResponse {
+  return {
+    error: {
+      type: 'network',
+      message,
+      details,
+    },
+  };
+}
+
+/**
+ * Creates an HTTP error response
+ */
+export function createHTTPError(message: string, statusCode: number, details?: any): ErrorResponse {
+  return {
+    error: {
+      type: 'http',
+      message,
+      statusCode,
+      details,
+    },
+  };
+}
+
+/**
+ * Creates a parsing error response
+ */
+export function createParsingError(message: string, details?: any): ErrorResponse {
+  return {
+    error: {
+      type: 'parsing',
+      message,
+      details,
+    },
+  };
+}

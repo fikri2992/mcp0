@@ -1,0 +1,67 @@
+import { MCPTool } from './types.js';
+
+// =============================================================================
+// Generated MCP Tool Definitions for {{server.name}}
+// Generated at: {{metadata.generatedAt}}
+// =============================================================================
+
+{{#each tools}}
+/**
+ * Tool definition for {{name}}
+ * {{description}}
+ */
+export const {{upperSnakeCase name}}_TOOL: MCPTool = {
+  name: '{{name}}',
+  description: '{{description}}',
+  inputSchema: {{{json inputSchema 4}}},
+};
+
+{{/each}}
+
+/**
+ * Array of all available API tools
+ */
+export const ALL_API_TOOLS: MCPTool[] = [
+{{#each tools}}
+  {{upperSnakeCase name}}_TOOL{{#unless @last}},{{/unless}}
+{{/each}}
+];
+
+/**
+ * Map of tool names to tool definitions for quick lookup
+ */
+export const TOOL_MAP: Record<string, MCPTool> = {
+{{#each tools}}
+  [{{upperSnakeCase name}}_TOOL.name]: {{upperSnakeCase name}}_TOOL{{#unless @last}},{{/unless}}
+{{/each}}
+};
+
+/**
+ * Get tool definition by name
+ */
+export function getToolByName(name: string): MCPTool | undefined {
+  return TOOL_MAP[name];
+}
+
+/**
+ * Check if a tool exists
+ */
+export function hasToolByName(name: string): boolean {
+  return name in TOOL_MAP;
+}
+
+/**
+ * Get all tool names
+ */
+export function getAllToolNames(): string[] {
+  return Object.keys(TOOL_MAP);
+}
+
+/**
+ * Get tools by HTTP method
+ */
+export function getToolsByMethod(method: string): MCPTool[] {
+  return ALL_API_TOOLS.filter(tool => 
+    tool.name.toLowerCase().includes(method.toLowerCase())
+  );
+}
