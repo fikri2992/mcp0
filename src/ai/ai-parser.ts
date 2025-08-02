@@ -260,11 +260,11 @@ export function createAIParser(config: AIParserConfig): AIParser {
 
 // Export default configuration
 export const DEFAULT_AI_PARSER_CONFIG: Partial<AIParserConfig> = {
-  model: 'gpt-4',
-  maxTokens: 4000,
-  temperature: 0.1,
+  model: process.env.OPENAI_MODEL || 'gpt-4',
+  maxTokens: parseInt(process.env.OPENAI_MAX_TOKENS || '4000', 10),
+  temperature: parseFloat(process.env.OPENAI_TEMPERATURE || '0.1'),
   extractionOptions: {
-    useAIOptimization: true,
+    useAIOptimization: process.env.NO_AI !== 'true',
     confidenceThreshold: 0.6,
     maxRetries: 2,
     fallbackToBasicParsing: true

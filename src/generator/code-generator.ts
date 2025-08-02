@@ -661,9 +661,9 @@ export function createTemplateContext(options: {
       version: '1.0.0',
     },
     configuration: {
-      timeout: 30000,
-      maxResponseLength: 50000,
-      allowLocalhost: false,
+      timeout: parseInt(process.env.API_TIMEOUT || '30000', 10),
+      maxResponseLength: parseInt(process.env.MAX_RESPONSE_LENGTH || '50000', 10),
+      allowLocalhost: process.env.ALLOW_LOCALHOST === 'true',
       allowPrivateIps: false,
       userAgent: 'MCP-Server/1.0.0',
       ...options.configuration,

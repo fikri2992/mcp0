@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import { Command } from 'commander';
 import { CLIOptions, CLICommand } from './cli-types.js';
 import { generateCommand } from './cli-commands.js';
@@ -38,9 +41,9 @@ export class MCPBuilderCLI {
       .option('-d, --debug', 'Enable debug logging', false)
       .option('-c, --config <path>', 'Path to configuration file')
       .option('--openai-api-key <key>', 'OpenAI API key for AI parsing')
-      .option('--model <model>', 'OpenAI model to use (default: gpt-4)', 'gpt-4')
+      .option('--model <model>', 'OpenAI model to use', process.env.OPENAI_MODEL || 'gpt-4')
       .option('--no-ai', 'Disable AI-powered parsing and optimization')
-      .option('--quiet', 'Suppress non-error output', false);
+      .option('--quiet', 'Suppress non-error output', process.env.QUIET === 'true');
 
     // Note: Removed exitOverride() to allow normal help/version exits
   }

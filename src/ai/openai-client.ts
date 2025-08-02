@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { AIErrorHandler, AIRetryHandler, AICircuitBreaker } from './error-handler.js';
 
 export interface OpenAIClientConfig {
-  apiKey: string;
+  apiKey?: string;
   model?: string;
   maxTokens?: number;
   temperature?: number;
@@ -117,13 +117,19 @@ export class OpenAIClient {
   private retryHandler: AIRetryHandler;
   private circuitBreaker: AICircuitBreaker;
 
-  constructor(config: OpenAIClientConfig) {
+  constructor(config: OpenAIClientConfig = {}) {
+    // Use environment variables as defaults
     this.config = {
-      model: 'gpt-4',
-      maxTokens: 4000,
-      temperature: 0.1,
+      apiKey: config.apiKey || process.env.OPENAI_API_KEY,
+      model: config.model || process.env.OPENAI_MODEL || 'gpt-4',
+      maxTokens: config.maxTokens || parseInt(process.env.OPENAI_MAX_TOKENS || '4000', 10),
+      temperature: config.temperature || parseFloat(process.env.OPENAI_TEMPERATURE || '0.1'),
       ...config
     };
+    
+    if (!this.config.apiKey) {
+      throw new Error('OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass apiKey in config.');
+    }
     
     this.client = new OpenAI({
       apiKey: this.config.apiKey

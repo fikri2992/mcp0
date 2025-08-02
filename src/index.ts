@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import { MCPServer } from './mcp-server.js';
 
 /**

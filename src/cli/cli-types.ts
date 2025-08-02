@@ -33,6 +33,8 @@ export interface CLIConfig {
   defaults?: {
     model?: string;
     template?: string;
+    outputDir?: string;
+    templateDir?: string;
     debug?: boolean;
     quiet?: boolean;
     noAi?: boolean;
@@ -44,6 +46,7 @@ export interface CLIConfig {
     model?: string;
     timeout?: number;
     maxTokens?: number;
+    temperature?: number;
   };
   
   // Template configuration

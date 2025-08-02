@@ -58,35 +58,46 @@ mcp-api-server --help
 
 ### Environment Variables
 
-Configure the server using environment variables:
+Configure the CLI and server using environment variables. Copy `.env.example` to `.env` and customize:
 
 ```bash
-# Enable debug logging
-DEBUG=true mcp-api-server
+# OpenAI Configuration (for AI-powered features)
+OPENAI_API_KEY=sk-your-openai-api-key-here
+OPENAI_MODEL=gpt-4
+OPENAI_TIMEOUT=30000
 
-# Set custom timeout (in milliseconds)
-API_TIMEOUT=60000 mcp-api-server
+# CLI Defaults
+DEBUG=true
+QUIET=false
+NO_AI=false
+DEFAULT_OUTPUT_DIR=./output
 
-# Allow localhost and private IPs
-ALLOW_LOCALHOST=true ALLOW_PRIVATE_IPS=true mcp-api-server
-
-# Set maximum response length (in bytes)
-MAX_RESPONSE_LENGTH=100000 mcp-api-server
-
-# Set custom user agent
-USER_AGENT="MyApp/1.0.0" mcp-api-server
+# Server Configuration (for generated servers)
+API_TIMEOUT=60000
+ALLOW_LOCALHOST=true
+ALLOW_PRIVATE_IPS=false
+MAX_RESPONSE_LENGTH=100000
+USER_AGENT="MyApp/1.0.0"
 ```
 
 ### Configuration Options
 
-| Option | Environment Variable | Default | Description |
-|--------|---------------------|---------|-------------|
+| CLI Option | Environment Variable | Default | Description |
+|------------|---------------------|---------|-------------|
 | `--debug` | `DEBUG` | `false` | Enable debug logging |
-| `--allow-localhost` | `ALLOW_LOCALHOST` | `false` | Allow requests to localhost/127.0.0.1 |
-| `--allow-private-ips` | `ALLOW_PRIVATE_IPS` | `false` | Allow requests to private IP ranges |
+| `--quiet` | `QUIET` | `false` | Suppress non-error output |
+| `--no-ai` | `NO_AI` | `false` | Disable AI-powered features |
+| `--openai-api-key` | `OPENAI_API_KEY` | - | OpenAI API key for AI parsing |
+| `--model` | `OPENAI_MODEL` | `gpt-4` | OpenAI model to use |
+| N/A | `OPENAI_TIMEOUT` | `30000` | OpenAI request timeout (ms) |
+| N/A | `OPENAI_MAX_TOKENS` | `4000` | Maximum tokens for OpenAI |
+| N/A | `OPENAI_TEMPERATURE` | `0.1` | OpenAI temperature (0.0-2.0) |
+| N/A | `DEFAULT_OUTPUT_DIR` | `./output` | Default output directory |
 | N/A | `API_TIMEOUT` | `30000` | Request timeout in milliseconds |
 | N/A | `MAX_RESPONSE_LENGTH` | `50000` | Maximum response length in bytes |
-| N/A | `USER_AGENT` | `MCP-API-Server/1.0.0` | Custom user agent string |
+| N/A | `ALLOW_LOCALHOST` | `false` | Allow requests to localhost |
+| N/A | `ALLOW_PRIVATE_IPS` | `false` | Allow requests to private IPs |
+| N/A | `USER_AGENT` | `MCP-Builder/1.0.0` | Custom user agent string |
 
 ## Available Tools
 

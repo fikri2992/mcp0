@@ -26,9 +26,9 @@ export class APIClient {
   constructor(config: APIClientConfig = {}) {
     // Set default configuration
     this.config = {
-      timeout: config.timeout ?? 30000,
-      userAgent: config.userAgent ?? 'MCP-API-Server/1.0.0',
-      maxContentLength: config.maxContentLength ?? 10 * 1024 * 1024, // 10MB
+      timeout: config.timeout ?? parseInt(process.env.API_TIMEOUT || '30000', 10),
+      userAgent: config.userAgent ?? process.env.USER_AGENT ?? 'MCP-API-Server/1.0.0',
+      maxContentLength: config.maxContentLength ?? parseInt(process.env.MAX_RESPONSE_LENGTH || '10485760', 10), // 10MB default
       maxBodyLength: config.maxBodyLength ?? 10 * 1024 * 1024, // 10MB
     };
 
