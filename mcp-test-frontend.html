@@ -1,0 +1,2993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Test Frontend</title>
+    <style>
+        /* CSS Variables for consistent theming */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --background-color: #ffffff;
+            --surface-color: #f8fafc;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.25rem;
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+        }
+
+        /* Dark theme variables */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background-color: #0f172a;
+                --surface-color: #1e293b;
+                --border-color: #334155;
+                --text-primary: #f1f5f9;
+                --text-secondary: #cbd5e1;
+                --text-muted: #64748b;
+            }
+        }
+
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: var(--font-size-base);
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--background-color);
+            min-height: 100vh;
+        }
+
+        /* Main layout using CSS Grid */
+        .app-container {
+            display: grid;
+            grid-template-areas: 
+                "header header"
+                "sidebar main"
+                "sidebar history";
+            grid-template-columns: 300px 1fr;
+            grid-template-rows: auto 1fr auto;
+            min-height: 100vh;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+        }
+
+        /* Header */
+        .header {
+            grid-area: header;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header h1 {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+        }
+
+        /* Sidebar - Connection Panel */
+        .sidebar {
+            grid-area: sidebar;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            height: fit-content;
+        }
+
+        /* Main content - Tools and Execution */
+        .main-content {
+            grid-area: main;
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .tools-panel, .execution-panel {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* History Panel */
+        .history-panel {
+            grid-area: history;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-sm);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Panel headers */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-base);
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        .form-input:invalid {
+            border-color: var(--error-color);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right var(--spacing-sm) center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: var(--spacing-xl);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 36px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-secondary);
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--surface-color);
+            color: var(--text-primary);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .btn-error {
+            background-color: var(--error-color);
+            color: white;
+            border-color: var(--error-color);
+        }
+
+        .btn-sm {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: var(--font-size-sm);
+            min-height: 28px;
+        }
+
+        .btn-lg {
+            padding: var(--spacing-md) var(--spacing-lg);
+            font-size: var(--font-size-base);
+            min-height: 44px;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .status-connected {
+            background-color: rgb(16 185 129 / 0.1);
+            color: var(--success-color);
+        }
+
+        .status-disconnected {
+            background-color: rgb(239 68 68 / 0.1);
+            color: var(--error-color);
+        }
+
+        .status-connecting {
+            background-color: rgb(245 158 11 / 0.1);
+            color: var(--warning-color);
+        }
+
+        /* Status dot */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        /* Cards and containers */
+        .card {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .card-header {
+            margin-bottom: var(--spacing-sm);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            color: var(--text-primary);
+        }
+
+        /* Utility classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-muted { color: var(--text-muted); }
+        .text-success { color: var(--success-color); }
+        .text-error { color: var(--error-color); }
+        .text-warning { color: var(--warning-color); }
+
+        .mb-0 { margin-bottom: 0; }
+        .mb-sm { margin-bottom: var(--spacing-sm); }
+        .mb-md { margin-bottom: var(--spacing-md); }
+        .mb-lg { margin-bottom: var(--spacing-lg); }
+
+        .mt-0 { margin-top: 0; }
+        .mt-sm { margin-top: var(--spacing-sm); }
+        .mt-md { margin-top: var(--spacing-md); }
+        .mt-lg { margin-top: var(--spacing-lg); }
+
+        .hidden { display: none; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-sm { gap: var(--spacing-sm); }
+        .gap-md { gap: var(--spacing-md); }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-areas: 
+                    "header"
+                    "sidebar"
+                    "main"
+                    "history";
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr auto;
+                padding: var(--spacing-sm);
+                gap: var(--spacing-sm);
+            }
+
+            .sidebar {
+                height: auto;
+            }
+
+            .history-panel {
+                max-height: 200px;
+            }
+
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-sm);
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: var(--spacing-xs);
+            }
+
+            .header, .sidebar, .tools-panel, .execution-panel, .history-panel {
+                padding: var(--spacing-md);
+            }
+
+            .form-input, .btn {
+                font-size: var(--font-size-base);
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .app-container {
+                grid-template-areas: 
+                    "header header"
+                    "main history";
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .btn {
+                display: none;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+
+            .tools-panel, .execution-panel, .history-panel {
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1>MCP Test Frontend</h1>
+            <p>A web-based interface for testing Model Context Protocol (MCP) servers</p>
+        </header>
+
+        <!-- Sidebar - Connection Panel -->
+        <aside class="sidebar">
+            <div class="panel-header">
+                <h2 class="panel-title">Connection</h2>
+                <div class="status-indicator status-disconnected">
+                    <span class="status-dot"></span>
+                    <span>Disconnected</span>
+                </div>
+            </div>
+
+            <form class="connection-form">
+                <div class="form-group">
+                    <label for="server-url" class="form-label">Server URL</label>
+                    <input 
+                        type="url" 
+                        id="server-url" 
+                        class="form-input" 
+                        placeholder="http://localhost:3000"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-lg">Connect</button>
+                </div>
+            </form>
+
+            <div class="server-info hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Server Information</h3>
+                    </div>
+                    <div class="server-details">
+                        <p><strong>Name:</strong> <span class="server-name">-</span></p>
+                        <p><strong>Version:</strong> <span class="server-version">-</span></p>
+                        <p><strong>Capabilities:</strong> <span class="server-capabilities">-</span></p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Tools Panel -->
+            <section class="tools-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Available Tools</h2>
+                    <button class="btn btn-secondary btn-sm" id="refresh-tools">Refresh</button>
+                </div>
+
+                <div class="tools-list">
+                    <p class="text-muted text-center">Connect to a server to see available tools</p>
+                </div>
+            </section>
+
+            <!-- Execution Panel -->
+            <section class="execution-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">Tool Execution</h2>
+                    <div class="flex gap-sm">
+                        <button class="btn btn-secondary btn-sm" id="clear-form">Clear</button>
+                        <button class="btn btn-primary btn-sm" id="execute-tool" disabled>Execute</button>
+                    </div>
+                </div>
+
+                <div class="execution-content">
+                    <p class="text-muted text-center">Select a tool to configure and execute</p>
+                </div>
+
+                <div class="execution-results hidden">
+                    <h3 class="mb-sm">Results</h3>
+                    <div class="results-content">
+                        <!-- Results will be displayed here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- History Panel -->
+        <section class="history-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Interaction History</h2>
+                <div class="flex gap-sm">
+                    <button class="btn btn-secondary btn-sm" id="export-history">Export</button>
+                    <button class="btn btn-secondary btn-sm" id="clear-history">Clear</button>
+                </div>
+            </div>
+
+            <div class="history-list">
+                <p class="text-muted text-center">No interactions yet</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // ValidationUtils Module - Provides input validation functions
+        class ValidationUtils {
+            /**
+             * Validates URL format with proper regex patterns
+             * @param {string} url - The URL to validate
+             * @returns {Object} - {isValid: boolean, error: string|null}
+             */
+            static validateURL(url) {
+                if (!url || typeof url !== 'string') {
+                    return {
+                        isValid: false,
+                        error: 'URL is required and must be a string'
+                    };
+                }
+
+                // Trim whitespace
+                url = url.trim();
+
+                if (url.length === 0) {
+                    return {
+                        isValid: false,
+                        error: 'URL cannot be empty'
+                    };
+                }
+
+                // Comprehensive URL regex pattern
+                const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?(\?[;&a-z\d%_\.~+=-]*)?(\#[-a-z\d_]*)?$/i;
+                const localhostPattern = /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/.*)?$/i;
+                const ipPattern = /^(https?:\/\/)?(\d{1,3}\.){3}\d{1,3}(:\d+)?(\/.*)?$/;
+
+                // Check if it matches any valid pattern
+                if (!urlPattern.test(url) && !localhostPattern.test(url) && !ipPattern.test(url)) {
+                    return {
+                        isValid: false,
+                        error: 'Invalid URL format. Please enter a valid HTTP/HTTPS URL'
+                    };
+                }
+
+                // Ensure protocol is present
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    return {
+                        isValid: false,
+                        error: 'URL must include protocol (http:// or https://)'
+                    };
+                }
+
+                // Additional validation for port numbers
+                const portMatch = url.match(/:(\d+)/);
+                if (portMatch) {
+                    const port = parseInt(portMatch[1]);
+                    if (port < 1 || port > 65535) {
+                        return {
+                            isValid: false,
+                            error: 'Port number must be between 1 and 65535'
+                        };
+                    }
+                }
+
+                return {
+                    isValid: true,
+                    error: null
+                };
+            }
+
+            /**
+             * Validates tool parameters against JSON schema
+             * @param {Object} toolSchema - The JSON schema for the tool
+             * @param {Object} parameters - The parameters to validate
+             * @returns {Object} - {isValid: boolean, errors: Array}
+             */
+            static validateToolParameters(toolSchema, parameters) {
+                const errors = [];
+
+                if (!toolSchema || typeof toolSchema !== 'object') {
+                    return {
+                        isValid: false,
+                        errors: ['Invalid tool schema provided']
+                    };
+                }
+
+                if (!parameters || typeof parameters !== 'object') {
+                    parameters = {};
+                }
+
+                const schema = toolSchema.inputSchema || toolSchema;
+                
+                // Check required fields
+                if (schema.required && Array.isArray(schema.required)) {
+                    for (const requiredField of schema.required) {
+                        if (!(requiredField in parameters) || 
+                            parameters[requiredField] === null || 
+                            parameters[requiredField] === undefined || 
+                            parameters[requiredField] === '') {
+                            errors.push(`Required parameter '${requiredField}' is missing or empty`);
+                        }
+                    }
+                }
+
+                // Validate parameter types and constraints
+                if (schema.properties && typeof schema.properties === 'object') {
+                    for (const [paramName, paramSchema] of Object.entries(schema.properties)) {
+                        const value = parameters[paramName];
+                        
+                        // Skip validation if parameter is not provided and not required
+                        if (value === undefined || value === null) {
+                            continue;
+                        }
+
+                        const paramErrors = this._validateParameterValue(paramName, value, paramSchema);
+                        errors.push(...paramErrors);
+                    }
+                }
+
+                return {
+                    isValid: errors.length === 0,
+                    errors: errors
+                };
+            }
+
+            /**
+             * Validates a single parameter value against its schema
+             * @private
+             */
+            static _validateParameterValue(paramName, value, paramSchema) {
+                const errors = [];
+
+                // Type validation
+                if (paramSchema.type) {
+                    const expectedType = paramSchema.type;
+                    const actualType = this._getJSONType(value);
+
+                    if (expectedType !== actualType) {
+                        // Special case for numbers that might be strings
+                        if (expectedType === 'number' && typeof value === 'string' && !isNaN(value)) {
+                            // Allow string numbers, they'll be converted
+                        } else if (expectedType === 'integer' && (typeof value === 'number' || !isNaN(value))) {
+                            // Allow numbers for integers
+                        } else {
+                            errors.push(`Parameter '${paramName}' must be of type ${expectedType}, got ${actualType}`);
+                            return errors; // Don't continue validation if type is wrong
+                        }
+                    }
+                }
+
+                // String validations
+                if (paramSchema.type === 'string' && typeof value === 'string') {
+                    if (paramSchema.minLength && value.length < paramSchema.minLength) {
+                        errors.push(`Parameter '${paramName}' must be at least ${paramSchema.minLength} characters long`);
+                    }
+                    if (paramSchema.maxLength && value.length > paramSchema.maxLength) {
+                        errors.push(`Parameter '${paramName}' must be no more than ${paramSchema.maxLength} characters long`);
+                    }
+                    if (paramSchema.pattern) {
+                        const regex = new RegExp(paramSchema.pattern);
+                        if (!regex.test(value)) {
+                            errors.push(`Parameter '${paramName}' does not match required pattern`);
+                        }
+                    }
+                    if (paramSchema.enum && !paramSchema.enum.includes(value)) {
+                        errors.push(`Parameter '${paramName}' must be one of: ${paramSchema.enum.join(', ')}`);
+                    }
+                }
+
+                // Number validations
+                if ((paramSchema.type === 'number' || paramSchema.type === 'integer') && !isNaN(value)) {
+                    const numValue = Number(value);
+                    if (paramSchema.minimum !== undefined && numValue < paramSchema.minimum) {
+                        errors.push(`Parameter '${paramName}' must be at least ${paramSchema.minimum}`);
+                    }
+                    if (paramSchema.maximum !== undefined && numValue > paramSchema.maximum) {
+                        errors.push(`Parameter '${paramName}' must be no more than ${paramSchema.maximum}`);
+                    }
+                    if (paramSchema.type === 'integer' && !Number.isInteger(numValue)) {
+                        errors.push(`Parameter '${paramName}' must be an integer`);
+                    }
+                }
+
+                // Array validations
+                if (paramSchema.type === 'array' && Array.isArray(value)) {
+                    if (paramSchema.minItems && value.length < paramSchema.minItems) {
+                        errors.push(`Parameter '${paramName}' must have at least ${paramSchema.minItems} items`);
+                    }
+                    if (paramSchema.maxItems && value.length > paramSchema.maxItems) {
+                        errors.push(`Parameter '${paramName}' must have no more than ${paramSchema.maxItems} items`);
+                    }
+                }
+
+                return errors;
+            }
+
+            /**
+             * Gets the JSON schema type of a value
+             * @private
+             */
+            static _getJSONType(value) {
+                if (value === null) return 'null';
+                if (Array.isArray(value)) return 'array';
+                if (typeof value === 'object') return 'object';
+                if (typeof value === 'boolean') return 'boolean';
+                if (typeof value === 'number') return 'number';
+                if (typeof value === 'string') return 'string';
+                return 'unknown';
+            }
+
+            /**
+             * Validates and sanitizes HTTP headers
+             * @param {Object} headers - The headers object to validate
+             * @returns {Object} - {isValid: boolean, sanitizedHeaders: Object, errors: Array}
+             */
+            static validateHeaders(headers) {
+                const errors = [];
+                const sanitizedHeaders = {};
+
+                if (!headers || typeof headers !== 'object') {
+                    return {
+                        isValid: true,
+                        sanitizedHeaders: {},
+                        errors: []
+                    };
+                }
+
+                // Header name validation regex (RFC 7230)
+                const headerNamePattern = /^[!#$%&'*+\-.0-9A-Z^_`a-z|~]+$/;
+                
+                for (const [name, value] of Object.entries(headers)) {
+                    // Validate header name
+                    if (!headerNamePattern.test(name)) {
+                        errors.push(`Invalid header name: '${name}'. Header names must contain only valid characters`);
+                        continue;
+                    }
+
+                    // Sanitize header value
+                    if (typeof value !== 'string') {
+                        errors.push(`Header '${name}' value must be a string`);
+                        continue;
+                    }
+
+                    // Remove control characters and normalize whitespace
+                    const sanitizedValue = value
+                        .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+                        .replace(/\s+/g, ' ') // Normalize whitespace
+                        .trim();
+
+                    if (sanitizedValue.length === 0) {
+                        errors.push(`Header '${name}' cannot be empty after sanitization`);
+                        continue;
+                    }
+
+                    // Check for common security headers and validate their values
+                    const lowerName = name.toLowerCase();
+                    if (lowerName === 'content-type') {
+                        if (!this._isValidContentType(sanitizedValue)) {
+                            errors.push(`Invalid Content-Type header value: '${sanitizedValue}'`);
+                            continue;
+                        }
+                    }
+
+                    sanitizedHeaders[name] = sanitizedValue;
+                }
+
+                return {
+                    isValid: errors.length === 0,
+                    sanitizedHeaders: sanitizedHeaders,
+                    errors: errors
+                };
+            }
+
+            /**
+             * Validates Content-Type header value
+             * @private
+             */
+            static _isValidContentType(value) {
+                // Basic MIME type pattern
+                const mimeTypePattern = /^[a-zA-Z][a-zA-Z0-9][a-zA-Z0-9!#$&\-\^]*\/[a-zA-Z0-9][a-zA-Z0-9!#$&\-\^]*(\s*;\s*[a-zA-Z0-9\-]+=([a-zA-Z0-9\-]+|"[^"]*"))*$/;
+                return mimeTypePattern.test(value);
+            }
+
+            /**
+             * Formats validation errors into user-friendly messages
+             * @param {Array} errors - Array of error messages
+             * @param {string} context - Context for the errors (e.g., 'URL validation', 'Parameter validation')
+             * @returns {string} - Formatted error message
+             */
+            static formatValidationErrors(errors, context = 'Validation') {
+                if (!Array.isArray(errors) || errors.length === 0) {
+                    return '';
+                }
+
+                if (errors.length === 1) {
+                    return `${context}: ${errors[0]}`;
+                }
+
+                const errorList = errors.map((error, index) => `${index + 1}. ${error}`).join('\n');
+                return `${context} failed with ${errors.length} error${errors.length > 1 ? 's' : ''}:\n${errorList}`;
+            }
+
+            /**
+             * Validates JSON string and returns parsed object
+             * @param {string} jsonString - The JSON string to validate
+             * @returns {Object} - {isValid: boolean, data: Object|null, error: string|null}
+             */
+            static validateJSON(jsonString) {
+                if (!jsonString || typeof jsonString !== 'string') {
+                    return {
+                        isValid: false,
+                        data: null,
+                        error: 'JSON string is required'
+                    };
+                }
+
+                try {
+                    const data = JSON.parse(jsonString.trim());
+                    return {
+                        isValid: true,
+                        data: data,
+                        error: null
+                    };
+                } catch (error) {
+                    return {
+                        isValid: false,
+                        data: null,
+                        error: `Invalid JSON: ${error.message}`
+                    };
+                }
+            }
+
+            /**
+             * Sanitizes user input to prevent XSS attacks
+             * @param {string} input - The input to sanitize
+             * @returns {string} - Sanitized input
+             */
+            static sanitizeInput(input) {
+                if (typeof input !== 'string') {
+                    return '';
+                }
+
+                return input
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;')
+                    .replace(/\//g, '&#x2F;');
+            }
+        }
+
+        // HistoryManager Module - Manages interaction history and tracking
+        class HistoryManager {
+            constructor(maxHistorySize = 1000) {
+                this.history = [];
+                this.maxHistorySize = maxHistorySize;
+                this.listeners = [];
+                this.storageKey = 'mcp-test-frontend-history';
+                
+                // Load history from localStorage if available
+                this._loadFromStorage();
+            }
+
+            /**
+             * Adds a new interaction to the history
+             * @param {Object} request - The request object
+             * @param {Object} response - The response object
+             * @param {Date} timestamp - Optional timestamp (defaults to now)
+             * @param {Object} metadata - Additional metadata
+             */
+            addInteraction(request, response, timestamp = new Date(), metadata = {}) {
+                const interaction = {
+                    id: this._generateId(),
+                    timestamp: timestamp,
+                    type: this._determineInteractionType(request),
+                    request: this._sanitizeForStorage(request),
+                    response: this._sanitizeForStorage(response),
+                    duration: metadata.duration || 0,
+                    status: this._determineStatus(response),
+                    metadata: {
+                        ...metadata,
+                        userAgent: navigator.userAgent,
+                        url: window.location.href
+                    }
+                };
+
+                // Add to beginning of array (most recent first)
+                this.history.unshift(interaction);
+
+                // Enforce size limit
+                if (this.history.length > this.maxHistorySize) {
+                    this.history = this.history.slice(0, this.maxHistorySize);
+                }
+
+                // Save to localStorage
+                this._saveToStorage();
+
+                // Notify listeners
+                this._notifyListeners('add', interaction);
+
+                return interaction;
+            }
+
+            /**
+             * Gets the complete history or filtered subset
+             * @param {Object} filter - Optional filter criteria
+             * @returns {Array} - Array of interaction records
+             */
+            getHistory(filter = {}) {
+                let filteredHistory = [...this.history];
+
+                // Apply filters
+                if (filter.type) {
+                    filteredHistory = filteredHistory.filter(item => item.type === filter.type);
+                }
+
+                if (filter.status) {
+                    filteredHistory = filteredHistory.filter(item => item.status === filter.status);
+                }
+
+                if (filter.dateFrom) {
+                    const fromDate = new Date(filter.dateFrom);
+                    filteredHistory = filteredHistory.filter(item => new Date(item.timestamp) >= fromDate);
+                }
+
+                if (filter.dateTo) {
+                    const toDate = new Date(filter.dateTo);
+                    filteredHistory = filteredHistory.filter(item => new Date(item.timestamp) <= toDate);
+                }
+
+                if (filter.searchTerm) {
+                    const term = filter.searchTerm.toLowerCase();
+                    filteredHistory = filteredHistory.filter(item => {
+                        const searchableText = JSON.stringify({
+                            type: item.type,
+                            request: item.request,
+                            response: item.response
+                        }).toLowerCase();
+                        return searchableText.includes(term);
+                    });
+                }
+
+                // Apply limit
+                if (filter.limit && filter.limit > 0) {
+                    filteredHistory = filteredHistory.slice(0, filter.limit);
+                }
+
+                return filteredHistory;
+            }
+
+            /**
+             * Searches history with advanced criteria
+             * @param {string} searchTerm - The search term
+             * @param {Object} options - Search options
+             * @returns {Array} - Matching interaction records
+             */
+            searchHistory(searchTerm, options = {}) {
+                if (!searchTerm || typeof searchTerm !== 'string') {
+                    return [];
+                }
+
+                const term = searchTerm.toLowerCase().trim();
+                const {
+                    searchInRequests = true,
+                    searchInResponses = true,
+                    searchInMetadata = false,
+                    caseSensitive = false,
+                    exactMatch = false
+                } = options;
+
+                return this.history.filter(item => {
+                    const searchText = caseSensitive ? searchTerm : term;
+                    
+                    let matches = false;
+
+                    // Search in request
+                    if (searchInRequests && item.request) {
+                        const requestText = caseSensitive ? 
+                            JSON.stringify(item.request) : 
+                            JSON.stringify(item.request).toLowerCase();
+                        
+                        matches = exactMatch ? 
+                            requestText.includes(searchText) : 
+                            requestText.includes(searchText);
+                    }
+
+                    // Search in response
+                    if (!matches && searchInResponses && item.response) {
+                        const responseText = caseSensitive ? 
+                            JSON.stringify(item.response) : 
+                            JSON.stringify(item.response).toLowerCase();
+                        
+                        matches = exactMatch ? 
+                            responseText.includes(searchText) : 
+                            responseText.includes(searchText);
+                    }
+
+                    // Search in metadata
+                    if (!matches && searchInMetadata && item.metadata) {
+                        const metadataText = caseSensitive ? 
+                            JSON.stringify(item.metadata) : 
+                            JSON.stringify(item.metadata).toLowerCase();
+                        
+                        matches = exactMatch ? 
+                            metadataText.includes(searchText) : 
+                            metadataText.includes(searchText);
+                    }
+
+                    // Search in type
+                    if (!matches) {
+                        const typeText = caseSensitive ? item.type : item.type.toLowerCase();
+                        matches = exactMatch ? 
+                            typeText === searchText : 
+                            typeText.includes(searchText);
+                    }
+
+                    return matches;
+                });
+            }
+
+            /**
+             * Clears all history
+             */
+            clearHistory() {
+                const oldHistory = [...this.history];
+                this.history = [];
+                this._saveToStorage();
+                this._notifyListeners('clear', oldHistory);
+            }
+
+            /**
+             * Removes a specific interaction by ID
+             * @param {string} id - The interaction ID to remove
+             * @returns {boolean} - True if removed, false if not found
+             */
+            removeInteraction(id) {
+                const index = this.history.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    const removed = this.history.splice(index, 1)[0];
+                    this._saveToStorage();
+                    this._notifyListeners('remove', removed);
+                    return true;
+                }
+                return false;
+            }
+
+            /**
+             * Exports history in various formats
+             * @param {string} format - Export format ('json', 'csv', 'txt')
+             * @param {Object} filter - Optional filter to apply before export
+             * @returns {string} - Exported data as string
+             */
+            exportHistory(format = 'json', filter = {}) {
+                const historyToExport = this.getHistory(filter);
+
+                switch (format.toLowerCase()) {
+                    case 'json':
+                        return JSON.stringify(historyToExport, null, 2);
+                    
+                    case 'csv':
+                        return this._exportToCSV(historyToExport);
+                    
+                    case 'txt':
+                        return this._exportToText(historyToExport);
+                    
+                    default:
+                        throw new Error(`Unsupported export format: ${format}`);
+                }
+            }
+
+            /**
+             * Gets statistics about the history
+             * @returns {Object} - Statistics object
+             */
+            getStatistics() {
+                const stats = {
+                    totalInteractions: this.history.length,
+                    byType: {},
+                    byStatus: {},
+                    dateRange: {
+                        earliest: null,
+                        latest: null
+                    },
+                    averageDuration: 0,
+                    totalDuration: 0
+                };
+
+                if (this.history.length === 0) {
+                    return stats;
+                }
+
+                let totalDuration = 0;
+                const dates = [];
+
+                this.history.forEach(item => {
+                    // Count by type
+                    stats.byType[item.type] = (stats.byType[item.type] || 0) + 1;
+                    
+                    // Count by status
+                    stats.byStatus[item.status] = (stats.byStatus[item.status] || 0) + 1;
+                    
+                    // Collect dates
+                    dates.push(new Date(item.timestamp));
+                    
+                    // Sum durations
+                    totalDuration += item.duration || 0;
+                });
+
+                // Calculate date range
+                dates.sort((a, b) => a - b);
+                stats.dateRange.earliest = dates[0];
+                stats.dateRange.latest = dates[dates.length - 1];
+
+                // Calculate average duration
+                stats.totalDuration = totalDuration;
+                stats.averageDuration = totalDuration / this.history.length;
+
+                return stats;
+            }
+
+            /**
+             * Adds a listener for history changes
+             * @param {Function} callback - Callback function (action, data) => void
+             */
+            addListener(callback) {
+                if (typeof callback === 'function') {
+                    this.listeners.push(callback);
+                }
+            }
+
+            /**
+             * Removes a listener
+             * @param {Function} callback - The callback function to remove
+             */
+            removeListener(callback) {
+                const index = this.listeners.indexOf(callback);
+                if (index !== -1) {
+                    this.listeners.splice(index, 1);
+                }
+            }
+
+            /**
+             * Sets the maximum history size
+             * @param {number} size - Maximum number of items to keep
+             */
+            setMaxHistorySize(size) {
+                if (typeof size === 'number' && size > 0) {
+                    this.maxHistorySize = size;
+                    
+                    // Trim current history if needed
+                    if (this.history.length > size) {
+                        this.history = this.history.slice(0, size);
+                        this._saveToStorage();
+                        this._notifyListeners('trim', { newSize: size });
+                    }
+                }
+            }
+
+            /**
+             * Gets the current history size
+             * @returns {number} - Current number of items in history
+             */
+            getHistorySize() {
+                return this.history.length;
+            }
+
+            /**
+             * Generates a unique ID for interactions
+             * @private
+             */
+            _generateId() {
+                return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            }
+
+            /**
+             * Determines the interaction type from the request
+             * @private
+             */
+            _determineInteractionType(request) {
+                if (!request || !request.method) {
+                    return 'unknown';
+                }
+
+                const method = request.method.toLowerCase();
+                if (method.includes('tools/list')) {
+                    return 'tools/list';
+                } else if (method.includes('tools/call')) {
+                    return 'tools/call';
+                } else if (method.includes('initialize')) {
+                    return 'initialize';
+                } else {
+                    return method;
+                }
+            }
+
+            /**
+             * Determines the status from the response
+             * @private
+             */
+            _determineStatus(response) {
+                if (!response) {
+                    return 'unknown';
+                }
+
+                if (response.error) {
+                    return 'error';
+                } else if (response.result !== undefined) {
+                    return 'success';
+                } else {
+                    return 'unknown';
+                }
+            }
+
+            /**
+             * Sanitizes data for storage (removes circular references, etc.)
+             * @private
+             */
+            _sanitizeForStorage(data) {
+                try {
+                    return JSON.parse(JSON.stringify(data));
+                } catch (error) {
+                    return { error: 'Could not serialize data', original: String(data) };
+                }
+            }
+
+            /**
+             * Loads history from localStorage
+             * @private
+             */
+            _loadFromStorage() {
+                try {
+                    const stored = localStorage.getItem(this.storageKey);
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed)) {
+                            this.history = parsed;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Failed to load history from storage:', error);
+                    this.history = [];
+                }
+            }
+
+            /**
+             * Saves history to localStorage
+             * @private
+             */
+            _saveToStorage() {
+                try {
+                    localStorage.setItem(this.storageKey, JSON.stringify(this.history));
+                } catch (error) {
+                    console.warn('Failed to save history to storage:', error);
+                }
+            }
+
+            /**
+             * Notifies all listeners of changes
+             * @private
+             */
+            _notifyListeners(action, data) {
+                this.listeners.forEach(callback => {
+                    try {
+                        callback(action, data);
+                    } catch (error) {
+                        console.error('Error in history listener:', error);
+                    }
+                });
+            }
+
+            /**
+             * Exports history to CSV format
+             * @private
+             */
+            _exportToCSV(history) {
+                if (history.length === 0) {
+                    return 'No data to export';
+                }
+
+                const headers = ['ID', 'Timestamp', 'Type', 'Status', 'Duration (ms)', 'Request Method', 'Response Status'];
+                const rows = [headers.join(',')];
+
+                history.forEach(item => {
+                    const row = [
+                        `"${item.id}"`,
+                        `"${item.timestamp}"`,
+                        `"${item.type}"`,
+                        `"${item.status}"`,
+                        item.duration || 0,
+                        `"${item.request?.method || 'N/A'}"`,
+                        `"${item.response?.error ? 'Error' : 'Success'}"`
+                    ];
+                    rows.push(row.join(','));
+                });
+
+                return rows.join('\n');
+            }
+
+            /**
+             * Exports history to text format
+             * @private
+             */
+            _exportToText(history) {
+                if (history.length === 0) {
+                    return 'No interactions in history';
+                }
+
+                const lines = ['MCP Test Frontend - Interaction History', '=' .repeat(50), ''];
+
+                history.forEach((item, index) => {
+                    lines.push(`${index + 1}. ${item.type.toUpperCase()} - ${item.status}`);
+                    lines.push(`   Time: ${new Date(item.timestamp).toLocaleString()}`);
+                    lines.push(`   Duration: ${item.duration || 0}ms`);
+                    lines.push(`   Request: ${JSON.stringify(item.request, null, 2)}`);
+                    lines.push(`   Response: ${JSON.stringify(item.response, null, 2)}`);
+                    lines.push('');
+                });
+
+                return lines.join('\n');
+            }
+        }
+
+        // MCPClient Module - Handles MCP protocol communication and connection management
+        class MCPClient {
+            constructor(config = {}) {
+                // Connection configuration
+                this.config = {
+                    timeout: config.timeout || 30000, // 30 seconds default
+                    retryAttempts: config.retryAttempts || 3,
+                    retryDelay: config.retryDelay || 1000, // 1 second initial delay
+                    ...config
+                };
+
+                // Connection state management
+                this.connectionState = {
+                    status: 'disconnected', // 'disconnected', 'connecting', 'connected', 'error'
+                    serverUrl: null,
+                    serverInfo: null,
+                    error: null,
+                    lastConnected: null,
+                    connectionAttempts: 0
+                };
+
+                // JSON-RPC message tracking
+                this.messageId = 0;
+                this.pendingRequests = new Map(); // Track pending requests by ID
+                this.requestTimeouts = new Map(); // Track request timeouts
+
+                // Event listeners
+                this.eventListeners = {
+                    message: [],
+                    error: [],
+                    connect: [],
+                    disconnect: [],
+                    statusChange: []
+                };
+
+                // Communication transport (will be HTTP for now, WebSocket support can be added later)
+                this.transport = null;
+                this.abortController = null;
+            }
+
+            /**
+             * Establishes connection to MCP server with retry logic
+             * @param {string} serverUrl - The server URL to connect to
+             * @param {Object} options - Connection options
+             * @returns {Promise<Object>} - Connection result with server info
+             */
+            async connect(serverUrl, options = {}) {
+                // Validate URL
+                const urlValidation = ValidationUtils.validateURL(serverUrl);
+                if (!urlValidation.isValid) {
+                    const error = new Error(`Invalid server URL: ${urlValidation.error}`);
+                    this._updateConnectionState('error', null, null, error.message);
+                    throw error;
+                }
+
+                const {
+                    retryAttempts = this.config.retryAttempts,
+                    retryDelay = this.config.retryDelay,
+                    skipRetry = false
+                } = options;
+
+                // Update state to connecting
+                this._updateConnectionState('connecting', serverUrl);
+                this.connectionState.connectionAttempts++;
+
+                let lastError = null;
+                let attempt = 0;
+
+                while (attempt <= retryAttempts) {
+                    try {
+                        // Create abort controller for this connection attempt
+                        this.abortController = new AbortController();
+
+                        // Perform MCP initialization handshake
+                        const serverInfo = await this._performHandshakeWithRetry(serverUrl, attempt);
+
+                        // Update state to connected
+                        this._updateConnectionState('connected', serverUrl, serverInfo);
+                        this.connectionState.lastConnected = new Date();
+                        this.connectionState.connectionAttempts = 0;
+
+                        // Emit connect event
+                        this._emitEvent('connect', { 
+                            serverUrl, 
+                            serverInfo, 
+                            attempt: attempt + 1,
+                            totalAttempts: retryAttempts + 1
+                        });
+
+                        return {
+                            success: true,
+                            serverInfo: serverInfo,
+                            message: `Successfully connected to MCP server${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`,
+                            attempt: attempt + 1
+                        };
+
+                    } catch (error) {
+                        lastError = error;
+                        attempt++;
+
+                        // If this was the last attempt or retry is disabled, give up
+                        if (attempt > retryAttempts || skipRetry) {
+                            break;
+                        }
+
+                        // Calculate exponential backoff delay
+                        const delay = this._calculateRetryDelay(attempt, retryDelay);
+                        
+                        // Emit retry event
+                        this._emitEvent('error', {
+                            type: 'connection_retry',
+                            error: error.message,
+                            attempt: attempt,
+                            totalAttempts: retryAttempts + 1,
+                            nextRetryIn: delay,
+                            serverUrl
+                        });
+
+                        // Wait before retrying
+                        await this._delay(delay);
+                    }
+                }
+
+                // All attempts failed
+                this._updateConnectionState('error', serverUrl, null, lastError.message);
+                
+                // Emit final error event
+                this._emitEvent('error', { 
+                    type: 'connection_failed', 
+                    error: lastError.message, 
+                    serverUrl,
+                    totalAttempts: attempt,
+                    finalAttempt: true
+                });
+
+                throw new Error(`Connection failed after ${attempt} attempts: ${lastError.message}`);
+            }
+
+            /**
+             * Disconnects from the MCP server
+             * @returns {Promise<void>}
+             */
+            async disconnect() {
+                // Cancel any pending requests
+                this._cancelAllPendingRequests();
+
+                // Abort any ongoing connection attempt
+                if (this.abortController) {
+                    this.abortController.abort();
+                    this.abortController = null;
+                }
+
+                // Update connection state
+                const wasConnected = this.connectionState.status === 'connected';
+                this._updateConnectionState('disconnected');
+
+                // Emit disconnect event if we were connected
+                if (wasConnected) {
+                    this._emitEvent('disconnect', { 
+                        timestamp: new Date(),
+                        reason: 'user_initiated'
+                    });
+                }
+            }
+
+            /**
+             * Lists all available tools from the MCP server
+             * @returns {Promise<Array>} - Array of tool definitions
+             */
+            async listTools() {
+                if (this.connectionState.status !== 'connected') {
+                    throw new Error('Not connected to MCP server');
+                }
+
+                const request = this._createJsonRpcRequest('tools/list', {});
+                const response = await this._sendRequest(request);
+
+                if (response.error) {
+                    throw new Error(`Failed to list tools: ${response.error.message}`);
+                }
+
+                return response.result?.tools || [];
+            }
+
+            /**
+             * Calls a specific tool with provided arguments
+             * @param {string} name - Tool name
+             * @param {Object} arguments - Tool arguments
+             * @returns {Promise<Object>} - Tool execution result
+             */
+            async callTool(name, arguments = {}) {
+                if (this.connectionState.status !== 'connected') {
+                    throw new Error('Not connected to MCP server');
+                }
+
+                if (!name || typeof name !== 'string') {
+                    throw new Error('Tool name is required and must be a string');
+                }
+
+                const request = this._createJsonRpcRequest('tools/call', {
+                    name: name,
+                    arguments: arguments
+                });
+
+                const response = await this._sendRequest(request);
+
+                if (response.error) {
+                    throw new Error(`Tool execution failed: ${response.error.message}`);
+                }
+
+                return response.result;
+            }
+
+            /**
+             * Gets the current connection status
+             * @returns {Object} - Current connection state
+             */
+            getConnectionStatus() {
+                return {
+                    ...this.connectionState,
+                    // Don't expose internal state directly
+                    pendingRequests: this.pendingRequests.size,
+                    hasActiveRequests: this.pendingRequests.size > 0
+                };
+            }
+
+            /**
+             * Adds event listener for MCP client events
+             * @param {string} event - Event type ('message', 'error', 'connect', 'disconnect', 'statusChange')
+             * @param {Function} callback - Event callback function
+             */
+            onMessage(callback) {
+                this.addEventListener('message', callback);
+            }
+
+            onError(callback) {
+                this.addEventListener('error', callback);
+            }
+
+            addEventListener(event, callback) {
+                if (typeof callback !== 'function') {
+                    throw new Error('Event callback must be a function');
+                }
+
+                if (!this.eventListeners[event]) {
+                    throw new Error(`Unknown event type: ${event}`);
+                }
+
+                this.eventListeners[event].push(callback);
+            }
+
+            /**
+             * Removes event listener
+             * @param {string} event - Event type
+             * @param {Function} callback - Event callback function to remove
+             */
+            removeEventListener(event, callback) {
+                if (!this.eventListeners[event]) {
+                    return;
+                }
+
+                const index = this.eventListeners[event].indexOf(callback);
+                if (index !== -1) {
+                    this.eventListeners[event].splice(index, 1);
+                }
+            }
+
+            /**
+             * Performs MCP initialization handshake with enhanced capability negotiation
+             * @private
+             * @param {string} serverUrl - Server URL
+             * @param {number} attempt - Current attempt number (for logging)
+             * @returns {Promise<Object>} - Server information
+             */
+            async _performHandshakeWithRetry(serverUrl, attempt = 0) {
+                const startTime = Date.now();
+
+                try {
+                    // Define supported protocol versions (in order of preference)
+                    const supportedVersions = ['2024-11-05', '2024-10-07', '2024-09-25'];
+                    
+                    // Create initialize request with comprehensive capabilities
+                    const initRequest = this._createJsonRpcRequest('initialize', {
+                        protocolVersion: supportedVersions[0], // Use preferred version
+                        capabilities: {
+                            roots: {
+                                listChanged: false
+                            },
+                            sampling: {},
+                            experimental: {
+                                // Add experimental capabilities if needed
+                            }
+                        },
+                        clientInfo: {
+                            name: 'MCP Test Frontend',
+                            version: '1.0.0',
+                            description: 'Web-based MCP server testing interface'
+                        }
+                    });
+
+                    // Send initialize request
+                    const initResponse = await this._sendRequest(initRequest, serverUrl);
+
+                    if (initResponse.error) {
+                        throw new Error(`Initialization failed: ${initResponse.error.message} (Code: ${initResponse.error.code})`);
+                    }
+
+                    // Validate and process server response
+                    const serverInfo = await this._processInitializeResponse(initResponse, supportedVersions);
+
+                    // Send initialized notification to complete handshake
+                    await this._sendInitializedNotification(serverUrl);
+
+                    // Calculate handshake duration
+                    const duration = Date.now() - startTime;
+
+                    // Emit successful handshake event
+                    this._emitEvent('message', {
+                        type: 'handshake_complete',
+                        serverInfo: serverInfo,
+                        duration: duration,
+                        attempt: attempt + 1,
+                        timestamp: new Date()
+                    });
+
+                    return serverInfo;
+
+                } catch (error) {
+                    const duration = Date.now() - startTime;
+                    
+                    // Emit handshake error event
+                    this._emitEvent('error', {
+                        type: 'handshake_error',
+                        error: error.message,
+                        duration: duration,
+                        attempt: attempt + 1,
+                        serverUrl: serverUrl,
+                        timestamp: new Date()
+                    });
+
+                    throw error;
+                }
+            }
+
+            /**
+             * Processes the initialize response and validates server capabilities
+             * @private
+             * @param {Object} initResponse - Initialize response from server
+             * @param {Array} supportedVersions - List of supported protocol versions
+             * @returns {Promise<Object>} - Processed server information
+             */
+            async _processInitializeResponse(initResponse, supportedVersions) {
+                const result = initResponse.result;
+                
+                if (!result) {
+                    throw new Error('Invalid initialize response: missing result');
+                }
+
+                // Check protocol version compatibility
+                const serverProtocolVersion = result.protocolVersion;
+                if (!serverProtocolVersion) {
+                    throw new Error('Server did not specify protocol version');
+                }
+
+                const isVersionSupported = supportedVersions.includes(serverProtocolVersion);
+                if (!isVersionSupported) {
+                    console.warn(`Server protocol version ${serverProtocolVersion} is not in supported versions: ${supportedVersions.join(', ')}`);
+                    // Continue anyway, but log the warning
+                }
+
+                // Extract and validate server info
+                const serverInfo = result.serverInfo || {};
+                const capabilities = result.capabilities || {};
+
+                // Process server capabilities
+                const processedCapabilities = this._processServerCapabilities(capabilities);
+
+                // Build comprehensive server info object
+                const processedServerInfo = {
+                    name: serverInfo.name || 'Unknown Server',
+                    version: serverInfo.version || 'Unknown Version',
+                    description: serverInfo.description || '',
+                    protocolVersion: serverProtocolVersion,
+                    capabilities: processedCapabilities,
+                    compatibility: {
+                        protocolVersionSupported: isVersionSupported,
+                        supportedVersions: supportedVersions,
+                        serverVersion: serverProtocolVersion
+                    },
+                    handshakeTimestamp: new Date(),
+                    // Store raw response for debugging
+                    _rawResponse: result
+                };
+
+                return processedServerInfo;
+            }
+
+            /**
+             * Processes and validates server capabilities
+             * @private
+             * @param {Object} capabilities - Raw server capabilities
+             * @returns {Object} - Processed capabilities with metadata
+             */
+            _processServerCapabilities(capabilities) {
+                const processed = {
+                    // Core capabilities
+                    tools: capabilities.tools || {},
+                    resources: capabilities.resources || {},
+                    prompts: capabilities.prompts || {},
+                    
+                    // Advanced capabilities
+                    logging: capabilities.logging || {},
+                    roots: capabilities.roots || {},
+                    sampling: capabilities.sampling || {},
+                    
+                    // Experimental capabilities
+                    experimental: capabilities.experimental || {},
+                    
+                    // Capability analysis
+                    _analysis: {
+                        hasTools: !!(capabilities.tools && Object.keys(capabilities.tools).length > 0),
+                        hasResources: !!(capabilities.resources && Object.keys(capabilities.resources).length > 0),
+                        hasPrompts: !!(capabilities.prompts && Object.keys(capabilities.prompts).length > 0),
+                        hasLogging: !!(capabilities.logging),
+                        hasRoots: !!(capabilities.roots),
+                        hasSampling: !!(capabilities.sampling),
+                        hasExperimental: !!(capabilities.experimental && Object.keys(capabilities.experimental).length > 0),
+                        totalCapabilities: Object.keys(capabilities).length
+                    }
+                };
+
+                return processed;
+            }
+
+            /**
+             * Sends the initialized notification to complete the handshake
+             * @private
+             * @param {string} serverUrl - Server URL
+             */
+            async _sendInitializedNotification(serverUrl) {
+                // Create initialized notification (JSON-RPC notification has no ID)
+                const notification = {
+                    jsonrpc: '2.0',
+                    method: 'notifications/initialized',
+                    params: {}
+                };
+
+                try {
+                    // Send notification (don't expect response)
+                    await this._makeHttpRequest(serverUrl, notification);
+                } catch (error) {
+                    // Log warning but don't fail the connection for notification errors
+                    console.warn('Failed to send initialized notification:', error.message);
+                    
+                    this._emitEvent('error', {
+                        type: 'notification_warning',
+                        error: error.message,
+                        notification: 'initialized',
+                        timestamp: new Date()
+                    });
+                }
+            }
+
+            /**
+             * Calculates retry delay with exponential backoff
+             * @private
+             * @param {number} attempt - Current attempt number (1-based)
+             * @param {number} baseDelay - Base delay in milliseconds
+             * @returns {number} - Calculated delay in milliseconds
+             */
+            _calculateRetryDelay(attempt, baseDelay) {
+                // Exponential backoff: baseDelay * (2 ^ (attempt - 1))
+                // With jitter to avoid thundering herd
+                const exponentialDelay = baseDelay * Math.pow(2, attempt - 1);
+                const jitter = Math.random() * 0.1 * exponentialDelay; // 10% jitter
+                const maxDelay = 30000; // Cap at 30 seconds
+                
+                return Math.min(exponentialDelay + jitter, maxDelay);
+            }
+
+            /**
+             * Utility method to create a delay
+             * @private
+             * @param {number} ms - Delay in milliseconds
+             * @returns {Promise} - Promise that resolves after the delay
+             */
+            _delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            /**
+             * Creates a JSON-RPC request object
+             * @private
+             * @param {string} method - RPC method name
+             * @param {Object} params - Method parameters
+             * @returns {Object} - JSON-RPC request object
+             */
+            _createJsonRpcRequest(method, params = {}) {
+                const id = ++this.messageId;
+                return {
+                    jsonrpc: '2.0',
+                    id: id,
+                    method: method,
+                    params: params
+                };
+            }
+
+            /**
+             * Sends a JSON-RPC request to the server
+             * @private
+             * @param {Object} request - JSON-RPC request object
+             * @param {string} serverUrl - Server URL (optional, uses current connection if not provided)
+             * @param {boolean} expectResponse - Whether to expect a response (default: true)
+             * @returns {Promise<Object>} - JSON-RPC response object
+             */
+            async _sendRequest(request, serverUrl = null, expectResponse = true) {
+                const url = serverUrl || this.connectionState.serverUrl;
+                if (!url) {
+                    throw new Error('No server URL available');
+                }
+
+                const startTime = Date.now();
+                const requestId = request.id;
+
+                try {
+                    // Set up timeout for this request
+                    const timeoutPromise = new Promise((_, reject) => {
+                        const timeoutId = setTimeout(() => {
+                            reject(new Error(`Request timeout after ${this.config.timeout}ms`));
+                        }, this.config.timeout);
+
+                        if (expectResponse) {
+                            this.requestTimeouts.set(requestId, timeoutId);
+                        }
+                    });
+
+                    // Create the HTTP request
+                    const requestPromise = this._makeHttpRequest(url, request);
+
+                    // Race between request and timeout
+                    const response = await Promise.race([requestPromise, timeoutPromise]);
+
+                    // Clean up timeout
+                    if (this.requestTimeouts.has(requestId)) {
+                        clearTimeout(this.requestTimeouts.get(requestId));
+                        this.requestTimeouts.delete(requestId);
+                    }
+
+                    // Calculate duration
+                    const duration = Date.now() - startTime;
+
+                    // Emit message event for successful requests
+                    this._emitEvent('message', {
+                        type: 'response',
+                        request: request,
+                        response: response,
+                        duration: duration,
+                        timestamp: new Date()
+                    });
+
+                    return response;
+
+                } catch (error) {
+                    // Clean up timeout
+                    if (this.requestTimeouts.has(requestId)) {
+                        clearTimeout(this.requestTimeouts.get(requestId));
+                        this.requestTimeouts.delete(requestId);
+                    }
+
+                    // Calculate duration even for errors
+                    const duration = Date.now() - startTime;
+
+                    // Emit error event
+                    this._emitEvent('error', {
+                        type: 'request',
+                        error: error.message,
+                        request: request,
+                        duration: duration,
+                        timestamp: new Date()
+                    });
+
+                    throw error;
+                }
+            }
+
+            /**
+             * Makes HTTP request to the server
+             * @private
+             * @param {string} url - Server URL
+             * @param {Object} request - JSON-RPC request object
+             * @returns {Promise<Object>} - Response object
+             */
+            async _makeHttpRequest(url, request) {
+                const fetchOptions = {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(request),
+                    signal: this.abortController?.signal
+                };
+
+                try {
+                    const response = await fetch(url, fetchOptions);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Server response is not JSON');
+                    }
+
+                    const jsonResponse = await response.json();
+
+                    // Validate JSON-RPC response format
+                    if (!jsonResponse.hasOwnProperty('jsonrpc') || jsonResponse.jsonrpc !== '2.0') {
+                        throw new Error('Invalid JSON-RPC response format');
+                    }
+
+                    if (jsonResponse.id !== request.id) {
+                        throw new Error('Response ID does not match request ID');
+                    }
+
+                    return jsonResponse;
+
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        throw new Error('Request was cancelled');
+                    }
+                    
+                    if (error instanceof TypeError && error.message.includes('fetch')) {
+                        throw new Error('Network error: Unable to connect to server');
+                    }
+
+                    throw error;
+                }
+            }
+
+            /**
+             * Updates connection state and emits status change event
+             * @private
+             */
+            _updateConnectionState(status, serverUrl = null, serverInfo = null, error = null) {
+                const oldStatus = this.connectionState.status;
+                
+                this.connectionState.status = status;
+                if (serverUrl !== null) this.connectionState.serverUrl = serverUrl;
+                if (serverInfo !== null) this.connectionState.serverInfo = serverInfo;
+                if (error !== null) this.connectionState.error = error;
+
+                // Clear error when status changes to non-error state
+                if (status !== 'error') {
+                    this.connectionState.error = null;
+                }
+
+                // Clear server info when disconnecting
+                if (status === 'disconnected') {
+                    this.connectionState.serverUrl = null;
+                    this.connectionState.serverInfo = null;
+                }
+
+                // Emit status change event if status actually changed
+                if (oldStatus !== status) {
+                    this._emitEvent('statusChange', {
+                        oldStatus: oldStatus,
+                        newStatus: status,
+                        connectionState: this.getConnectionStatus(),
+                        timestamp: new Date()
+                    });
+                }
+            }
+
+            /**
+             * Emits an event to all registered listeners
+             * @private
+             */
+            _emitEvent(eventType, data) {
+                if (!this.eventListeners[eventType]) {
+                    return;
+                }
+
+                this.eventListeners[eventType].forEach(callback => {
+                    try {
+                        callback(data);
+                    } catch (error) {
+                        console.error(`Error in ${eventType} event listener:`, error);
+                    }
+                });
+            }
+
+            /**
+             * Cancels all pending requests
+             * @private
+             */
+            _cancelAllPendingRequests() {
+                // Clear all pending request timeouts
+                for (const [requestId, timeoutId] of this.requestTimeouts.entries()) {
+                    clearTimeout(timeoutId);
+                }
+                this.requestTimeouts.clear();
+                this.pendingRequests.clear();
+            }
+
+            /**
+             * Checks server compatibility and protocol version support
+             * @returns {Object} - Compatibility information
+             */
+            checkServerCompatibility() {
+                if (this.connectionState.status !== 'connected' || !this.connectionState.serverInfo) {
+                    return {
+                        isCompatible: false,
+                        reason: 'Not connected to server',
+                        details: null
+                    };
+                }
+
+                const serverInfo = this.connectionState.serverInfo;
+                const compatibility = serverInfo.compatibility || {};
+
+                // Check protocol version compatibility
+                const protocolCompatible = compatibility.protocolVersionSupported !== false;
+                
+                // Check if server has basic required capabilities
+                const hasBasicCapabilities = serverInfo.capabilities?._analysis?.hasTools || 
+                                           serverInfo.capabilities?._analysis?.hasResources ||
+                                           serverInfo.capabilities?._analysis?.hasPrompts;
+
+                const isFullyCompatible = protocolCompatible && hasBasicCapabilities;
+
+                return {
+                    isCompatible: isFullyCompatible,
+                    protocolCompatible: protocolCompatible,
+                    hasBasicCapabilities: hasBasicCapabilities,
+                    serverVersion: compatibility.serverVersion,
+                    supportedVersions: compatibility.supportedVersions,
+                    capabilities: serverInfo.capabilities?._analysis || {},
+                    warnings: this._generateCompatibilityWarnings(serverInfo),
+                    recommendations: this._generateCompatibilityRecommendations(serverInfo)
+                };
+            }
+
+            /**
+             * Generates compatibility warnings
+             * @private
+             * @param {Object} serverInfo - Server information
+             * @returns {Array} - Array of warning messages
+             */
+            _generateCompatibilityWarnings(serverInfo) {
+                const warnings = [];
+                const compatibility = serverInfo.compatibility || {};
+                const capabilities = serverInfo.capabilities?._analysis || {};
+
+                // Protocol version warnings
+                if (!compatibility.protocolVersionSupported) {
+                    warnings.push(`Server uses unsupported protocol version ${compatibility.serverVersion}. Supported versions: ${compatibility.supportedVersions?.join(', ')}`);
+                }
+
+                // Capability warnings
+                if (!capabilities.hasTools && !capabilities.hasResources && !capabilities.hasPrompts) {
+                    warnings.push('Server does not expose any tools, resources, or prompts');
+                }
+
+                if (capabilities.totalCapabilities === 0) {
+                    warnings.push('Server reported no capabilities');
+                }
+
+                return warnings;
+            }
+
+            /**
+             * Generates compatibility recommendations
+             * @private
+             * @param {Object} serverInfo - Server information
+             * @returns {Array} - Array of recommendation messages
+             */
+            _generateCompatibilityRecommendations(serverInfo) {
+                const recommendations = [];
+                const compatibility = serverInfo.compatibility || {};
+                const capabilities = serverInfo.capabilities?._analysis || {};
+
+                // Protocol recommendations
+                if (!compatibility.protocolVersionSupported) {
+                    recommendations.push('Consider updating the server to use a supported protocol version');
+                }
+
+                // Feature recommendations
+                if (!capabilities.hasTools) {
+                    recommendations.push('Server does not support tools - tool execution features will be unavailable');
+                }
+
+                if (!capabilities.hasResources) {
+                    recommendations.push('Server does not support resources - resource browsing features will be unavailable');
+                }
+
+                if (capabilities.hasExperimental) {
+                    recommendations.push('Server supports experimental features - some functionality may be unstable');
+                }
+
+                return recommendations;
+            }
+
+            /**
+             * Gets server information with detailed capability analysis
+             * @returns {Object|null} - Detailed server information or null if not connected
+             */
+            getServerInfo() {
+                if (this.connectionState.status !== 'connected' || !this.connectionState.serverInfo) {
+                    return null;
+                }
+
+                const serverInfo = this.connectionState.serverInfo;
+                const compatibility = this.checkServerCompatibility();
+
+                return {
+                    ...serverInfo,
+                    compatibility: compatibility,
+                    connectionDetails: {
+                        connectedAt: this.connectionState.lastConnected,
+                        serverUrl: this.connectionState.serverUrl,
+                        connectionAttempts: this.connectionState.connectionAttempts
+                    }
+                };
+            }
+
+            /**
+             * Gets detailed connection diagnostics
+             * @returns {Object} - Diagnostic information
+             */
+            getDiagnostics() {
+                const serverInfo = this.getServerInfo();
+                
+                return {
+                    connectionState: this.getConnectionStatus(),
+                    serverInfo: serverInfo,
+                    config: { ...this.config },
+                    messageId: this.messageId,
+                    pendingRequests: this.pendingRequests.size,
+                    activeTimeouts: this.requestTimeouts.size,
+                    eventListeners: Object.keys(this.eventListeners).reduce((acc, key) => {
+                        acc[key] = this.eventListeners[key].length;
+                        return acc;
+                    }, {}),
+                    lastActivity: this.connectionState.lastConnected,
+                    userAgent: navigator.userAgent,
+                    timestamp: new Date()
+                };
+            }
+        }
+
+        // ToolsManager Module - Handles tools discovery, parsing, and display functionality
+        class ToolsManager {
+            constructor() {
+                this.tools = [];
+                this.filteredTools = [];
+                this.searchTerm = '';
+                this.sortBy = 'name'; // 'name', 'category', 'description'
+                this.sortOrder = 'asc'; // 'asc', 'desc'
+                this.categories = new Set();
+                this.listeners = [];
+            }
+
+            /**
+             * Processes and stores tools from MCP server response
+             * @param {Array} toolsData - Raw tools data from server
+             * @returns {Object} - Processing result with statistics
+             */
+            processTools(toolsData) {
+                if (!Array.isArray(toolsData)) {
+                    throw new Error('Tools data must be an array');
+                }
+
+                // Reset state
+                this.tools = [];
+                this.categories.clear();
+
+                // Process each tool
+                const processingResults = {
+                    total: toolsData.length,
+                    processed: 0,
+                    errors: [],
+                    warnings: []
+                };
+
+                toolsData.forEach((toolData, index) => {
+                    try {
+                        const processedTool = this._processSingleTool(toolData, index);
+                        if (processedTool) {
+                            this.tools.push(processedTool);
+                            processingResults.processed++;
+                            
+                            // Add to categories
+                            if (processedTool.category) {
+                                this.categories.add(processedTool.category);
+                            }
+                        }
+                    } catch (error) {
+                        processingResults.errors.push({
+                            index: index,
+                            tool: toolData?.name || 'Unknown',
+                            error: error.message
+                        });
+                    }
+                });
+
+                // Apply initial filtering and sorting
+                this._applyFiltersAndSort();
+
+                // Notify listeners
+                this._notifyListeners('tools_processed', {
+                    tools: this.tools,
+                    results: processingResults
+                });
+
+                return processingResults;
+            }
+
+            /**
+             * Processes a single tool definition
+             * @private
+             * @param {Object} toolData - Raw tool data
+             * @param {number} index - Tool index for error reporting
+             * @returns {Object} - Processed tool definition
+             */
+            _processSingleTool(toolData, index) {
+                // Validate required fields
+                if (!toolData || typeof toolData !== 'object') {
+                    throw new Error(`Tool at index ${index} is not a valid object`);
+                }
+
+                if (!toolData.name || typeof toolData.name !== 'string') {
+                    throw new Error(`Tool at index ${index} missing required 'name' field`);
+                }
+
+                // Extract and validate tool schema
+                const inputSchema = toolData.inputSchema || {};
+                const schemaValidation = this._validateToolSchema(inputSchema, toolData.name);
+                
+                if (!schemaValidation.isValid) {
+                    throw new Error(`Invalid schema for tool '${toolData.name}': ${schemaValidation.errors.join(', ')}`);
+                }
+
+                // Determine tool category
+                const category = this._determineToolCategory(toolData);
+
+                // Extract parameter information
+                const parameters = this._extractParameterInfo(inputSchema);
+
+                // Calculate complexity score
+                const complexity = this._calculateToolComplexity(parameters);
+
+                return {
+                    name: toolData.name,
+                    description: toolData.description || 'No description provided',
+                    inputSchema: inputSchema,
+                    category: category,
+                    parameters: parameters,
+                    complexity: complexity,
+                    metadata: {
+                        hasRequiredParams: parameters.some(p => p.required),
+                        parameterCount: parameters.length,
+                        requiredParameterCount: parameters.filter(p => p.required).length,
+                        supportedTypes: [...new Set(parameters.map(p => p.type))],
+                        processedAt: new Date(),
+                        originalIndex: index
+                    }
+                };
+            }
+
+            /**
+             * Validates tool schema structure
+             * @private
+             * @param {Object} schema - Tool input schema
+             * @param {string} toolName - Tool name for error reporting
+             * @returns {Object} - Validation result
+             */
+            _validateToolSchema(schema, toolName) {
+                const errors = [];
+
+                if (!schema || typeof schema !== 'object') {
+                    return {
+                        isValid: true, // Allow empty schemas
+                        errors: []
+                    };
+                }
+
+                // Validate schema type
+                if (schema.type && schema.type !== 'object') {
+                    errors.push(`Schema type must be 'object', got '${schema.type}'`);
+                }
+
+                // Validate properties structure
+                if (schema.properties && typeof schema.properties !== 'object') {
+                    errors.push('Schema properties must be an object');
+                }
+
+                // Validate required array
+                if (schema.required && !Array.isArray(schema.required)) {
+                    errors.push('Schema required field must be an array');
+                }
+
+                // Validate that required fields exist in properties
+                if (schema.required && schema.properties) {
+                    for (const requiredField of schema.required) {
+                        if (!(requiredField in schema.properties)) {
+                            errors.push(`Required field '${requiredField}' not found in properties`);
+                        }
+                    }
+                }
+
+                return {
+                    isValid: errors.length === 0,
+                    errors: errors
+                };
+            }
+
+            /**
+             * Determines tool category based on name and description
+             * @private
+             * @param {Object} toolData - Tool data
+             * @returns {string} - Determined category
+             */
+            _determineToolCategory(toolData) {
+                const name = (toolData.name || '').toLowerCase();
+                const description = (toolData.description || '').toLowerCase();
+                const combined = `${name} ${description}`;
+
+                // Category mapping based on common patterns
+                const categoryPatterns = {
+                    'File System': ['file', 'directory', 'folder', 'path', 'read', 'write', 'create', 'delete'],
+                    'Network': ['http', 'request', 'api', 'fetch', 'download', 'upload', 'url', 'web'],
+                    'Data Processing': ['parse', 'transform', 'convert', 'process', 'analyze', 'filter'],
+                    'Search': ['search', 'find', 'query', 'lookup', 'grep', 'match'],
+                    'System': ['system', 'process', 'command', 'execute', 'run', 'shell'],
+                    'Database': ['database', 'db', 'sql', 'query', 'table', 'record'],
+                    'Text': ['text', 'string', 'format', 'template', 'generate', 'content'],
+                    'Utility': ['util', 'helper', 'tool', 'misc', 'general']
+                };
+
+                // Find matching category
+                for (const [category, keywords] of Object.entries(categoryPatterns)) {
+                    if (keywords.some(keyword => combined.includes(keyword))) {
+                        return category;
+                    }
+                }
+
+                return 'Other';
+            }
+
+            /**
+             * Extracts parameter information from schema
+             * @private
+             * @param {Object} schema - Input schema
+             * @returns {Array} - Array of parameter definitions
+             */
+            _extractParameterInfo(schema) {
+                if (!schema || !schema.properties) {
+                    return [];
+                }
+
+                const required = schema.required || [];
+                const parameters = [];
+
+                for (const [paramName, paramSchema] of Object.entries(schema.properties)) {
+                    const parameter = {
+                        name: paramName,
+                        type: paramSchema.type || 'string',
+                        description: paramSchema.description || '',
+                        required: required.includes(paramName),
+                        default: paramSchema.default,
+                        enum: paramSchema.enum,
+                        format: paramSchema.format,
+                        pattern: paramSchema.pattern,
+                        minimum: paramSchema.minimum,
+                        maximum: paramSchema.maximum,
+                        minLength: paramSchema.minLength,
+                        maxLength: paramSchema.maxLength,
+                        items: paramSchema.items, // For array types
+                        properties: paramSchema.properties, // For object types
+                        examples: paramSchema.examples || []
+                    };
+
+                    // Add validation hints
+                    parameter.validationHints = this._generateValidationHints(parameter);
+
+                    parameters.push(parameter);
+                }
+
+                return parameters.sort((a, b) => {
+                    // Sort required parameters first, then by name
+                    if (a.required && !b.required) return -1;
+                    if (!a.required && b.required) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+            }
+
+            /**
+             * Generates validation hints for a parameter
+             * @private
+             * @param {Object} parameter - Parameter definition
+             * @returns {Array} - Array of validation hint strings
+             */
+            _generateValidationHints(parameter) {
+                const hints = [];
+
+                if (parameter.required) {
+                    hints.push('Required');
+                }
+
+                if (parameter.type) {
+                    hints.push(`Type: ${parameter.type}`);
+                }
+
+                if (parameter.format) {
+                    hints.push(`Format: ${parameter.format}`);
+                }
+
+                if (parameter.enum) {
+                    hints.push(`Options: ${parameter.enum.join(', ')}`);
+                }
+
+                if (parameter.pattern) {
+                    hints.push(`Pattern: ${parameter.pattern}`);
+                }
+
+                if (parameter.minLength !== undefined || parameter.maxLength !== undefined) {
+                    const min = parameter.minLength || 0;
+                    const max = parameter.maxLength || '∞';
+                    hints.push(`Length: ${min}-${max}`);
+                }
+
+                if (parameter.minimum !== undefined || parameter.maximum !== undefined) {
+                    const min = parameter.minimum ?? '-∞';
+                    const max = parameter.maximum ?? '∞';
+                    hints.push(`Range: ${min}-${max}`);
+                }
+
+                if (parameter.default !== undefined) {
+                    hints.push(`Default: ${JSON.stringify(parameter.default)}`);
+                }
+
+                return hints;
+            }
+
+            /**
+             * Calculates tool complexity score
+             * @private
+             * @param {Array} parameters - Tool parameters
+             * @returns {Object} - Complexity information
+             */
+            _calculateToolComplexity(parameters) {
+                let score = 0;
+                const factors = {
+                    parameterCount: parameters.length,
+                    requiredParams: 0,
+                    complexTypes: 0,
+                    hasValidation: 0
+                };
+
+                parameters.forEach(param => {
+                    // Base score per parameter
+                    score += 1;
+
+                    // Required parameters add complexity
+                    if (param.required) {
+                        score += 2;
+                        factors.requiredParams++;
+                    }
+
+                    // Complex types add more complexity
+                    if (['object', 'array'].includes(param.type)) {
+                        score += 3;
+                        factors.complexTypes++;
+                    }
+
+                    // Validation rules add complexity
+                    if (param.pattern || param.enum || param.minimum !== undefined || param.maximum !== undefined) {
+                        score += 1;
+                        factors.hasValidation++;
+                    }
+                });
+
+                // Determine complexity level
+                let level = 'Simple';
+                if (score > 15) level = 'Complex';
+                else if (score > 8) level = 'Moderate';
+
+                return {
+                    score: score,
+                    level: level,
+                    factors: factors
+                };
+            }
+
+            /**
+             * Applies current filters and sorting to tools
+             * @private
+             */
+            _applyFiltersAndSort() {
+                let filtered = [...this.tools];
+
+                // Apply search filter
+                if (this.searchTerm) {
+                    const term = this.searchTerm.toLowerCase();
+                    filtered = filtered.filter(tool => 
+                        tool.name.toLowerCase().includes(term) ||
+                        tool.description.toLowerCase().includes(term) ||
+                        tool.category.toLowerCase().includes(term) ||
+                        tool.parameters.some(param => 
+                            param.name.toLowerCase().includes(term) ||
+                            param.description.toLowerCase().includes(term)
+                        )
+                    );
+                }
+
+                // Apply sorting
+                filtered.sort((a, b) => {
+                    let comparison = 0;
+
+                    switch (this.sortBy) {
+                        case 'name':
+                            comparison = a.name.localeCompare(b.name);
+                            break;
+                        case 'category':
+                            comparison = a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+                            break;
+                        case 'description':
+                            comparison = a.description.localeCompare(b.description);
+                            break;
+                        case 'complexity':
+                            comparison = a.complexity.score - b.complexity.score;
+                            break;
+                        case 'parameters':
+                            comparison = a.parameters.length - b.parameters.length;
+                            break;
+                        default:
+                            comparison = a.name.localeCompare(b.name);
+                    }
+
+                    return this.sortOrder === 'desc' ? -comparison : comparison;
+                });
+
+                this.filteredTools = filtered;
+            }
+
+            /**
+             * Sets search term and applies filtering
+             * @param {string} searchTerm - Search term to filter by
+             */
+            setSearchTerm(searchTerm) {
+                this.searchTerm = (searchTerm || '').trim();
+                this._applyFiltersAndSort();
+                this._notifyListeners('search_changed', {
+                    searchTerm: this.searchTerm,
+                    resultCount: this.filteredTools.length
+                });
+            }
+
+            /**
+             * Sets sorting criteria
+             * @param {string} sortBy - Field to sort by
+             * @param {string} sortOrder - Sort order ('asc' or 'desc')
+             */
+            setSorting(sortBy, sortOrder = 'asc') {
+                this.sortBy = sortBy;
+                this.sortOrder = sortOrder;
+                this._applyFiltersAndSort();
+                this._notifyListeners('sort_changed', {
+                    sortBy: this.sortBy,
+                    sortOrder: this.sortOrder
+                });
+            }
+
+            /**
+             * Gets filtered and sorted tools
+             * @returns {Array} - Array of processed tools
+             */
+            getTools() {
+                return [...this.filteredTools];
+            }
+
+            /**
+             * Gets a specific tool by name
+             * @param {string} name - Tool name
+             * @returns {Object|null} - Tool definition or null if not found
+             */
+            getTool(name) {
+                return this.tools.find(tool => tool.name === name) || null;
+            }
+
+            /**
+             * Gets all available categories
+             * @returns {Array} - Array of category names
+             */
+            getCategories() {
+                return Array.from(this.categories).sort();
+            }
+
+            /**
+             * Gets tools statistics
+             * @returns {Object} - Statistics about loaded tools
+             */
+            getStatistics() {
+                const stats = {
+                    total: this.tools.length,
+                    filtered: this.filteredTools.length,
+                    categories: this.categories.size,
+                    byCategory: {},
+                    byComplexity: { Simple: 0, Moderate: 0, Complex: 0 },
+                    parameterStats: {
+                        totalParameters: 0,
+                        averageParameters: 0,
+                        maxParameters: 0,
+                        toolsWithRequiredParams: 0
+                    }
+                };
+
+                // Calculate category distribution
+                this.tools.forEach(tool => {
+                    stats.byCategory[tool.category] = (stats.byCategory[tool.category] || 0) + 1;
+                    stats.byComplexity[tool.complexity.level]++;
+                    stats.parameterStats.totalParameters += tool.parameters.length;
+                    stats.parameterStats.maxParameters = Math.max(stats.parameterStats.maxParameters, tool.parameters.length);
+                    if (tool.metadata.hasRequiredParams) {
+                        stats.parameterStats.toolsWithRequiredParams++;
+                    }
+                });
+
+                if (this.tools.length > 0) {
+                    stats.parameterStats.averageParameters = stats.parameterStats.totalParameters / this.tools.length;
+                }
+
+                return stats;
+            }
+
+            /**
+             * Clears all tools
+             */
+            clearTools() {
+                this.tools = [];
+                this.filteredTools = [];
+                this.categories.clear();
+                this._notifyListeners('tools_cleared', {});
+            }
+
+            /**
+             * Adds event listener
+             * @param {Function} callback - Callback function
+             */
+            addListener(callback) {
+                if (typeof callback === 'function') {
+                    this.listeners.push(callback);
+                }
+            }
+
+            /**
+             * Removes event listener
+             * @param {Function} callback - Callback function to remove
+             */
+            removeListener(callback) {
+                const index = this.listeners.indexOf(callback);
+                if (index !== -1) {
+                    this.listeners.splice(index, 1);
+                }
+            }
+
+            /**
+             * Notifies all listeners of changes
+             * @private
+             */
+            _notifyListeners(action, data) {
+                this.listeners.forEach(callback => {
+                    try {
+                        callback(action, data);
+                    } catch (error) {
+                        console.error('Error in tools listener:', error);
+                    }
+                });
+            }
+        }
+
+        console.log('MCP Test Frontend loaded - ValidationUtils, HistoryManager, MCPClient, and ToolsManager modules ready');
+        
+        // Initialize application when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize managers
+            const historyManager = new HistoryManager();
+            const mcpClient = new MCPClient();
+            const toolsManager = new ToolsManager();
+
+            // UI elements
+            const connectionForm = document.querySelector('.connection-form');
+            const statusIndicator = document.querySelector('.status-indicator');
+            const toolsList = document.querySelector('.tools-list');
+            const refreshToolsBtn = document.getElementById('refresh-tools');
+
+            // Connection form handler
+            connectionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                // This will be implemented in later tasks
+                console.log('Connection form submitted');
+            });
+
+            // Tools refresh handler
+            refreshToolsBtn.addEventListener('click', async function() {
+                if (mcpClient.getConnectionStatus().status !== 'connected') {
+                    showNotification('Please connect to a server first', 'error');
+                    return;
+                }
+
+                try {
+                    refreshToolsBtn.disabled = true;
+                    refreshToolsBtn.textContent = 'Loading...';
+
+                    const tools = await mcpClient.listTools();
+                    const result = toolsManager.processTools(tools);
+                    
+                    renderToolsList(toolsManager.getTools());
+                    showNotification(`Loaded ${result.processed} tools successfully`, 'success');
+
+                    if (result.errors.length > 0) {
+                        console.warn('Tool processing errors:', result.errors);
+                        showNotification(`${result.errors.length} tools had processing errors`, 'warning');
+                    }
+
+                } catch (error) {
+                    console.error('Failed to refresh tools:', error);
+                    showNotification(`Failed to refresh tools: ${error.message}`, 'error');
+                } finally {
+                    refreshToolsBtn.disabled = false;
+                    refreshToolsBtn.textContent = 'Refresh';
+                }
+            });
+
+            // Tools manager listener
+            toolsManager.addListener((action, data) => {
+                if (action === 'tools_processed') {
+                    renderToolsList(toolsManager.getTools());
+                }
+            });
+
+            /**
+             * Renders the tools list in the UI
+             * @param {Array} tools - Array of tools to render
+             */
+            function renderToolsList(tools) {
+                if (!tools || tools.length === 0) {
+                    toolsList.innerHTML = '<p class="text-muted text-center">No tools available</p>';
+                    return;
+                }
+
+                const toolsHTML = `
+                    <div class="tools-header mb-md">
+                        <div class="flex justify-between items-center mb-sm">
+                            <span class="text-sm text-muted">${tools.length} tool${tools.length !== 1 ? 's' : ''} available</span>
+                            <div class="tools-controls flex gap-sm">
+                                <input type="text" id="tools-search" class="form-input" placeholder="Search tools..." style="width: 200px;">
+                                <select id="tools-sort" class="form-input form-select" style="width: 150px;">
+                                    <option value="name">Sort by Name</option>
+                                    <option value="category">Sort by Category</option>
+                                    <option value="complexity">Sort by Complexity</option>
+                                    <option value="parameters">Sort by Parameters</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tools-grid">
+                        ${tools.map(tool => renderToolCard(tool)).join('')}
+                    </div>
+                `;
+
+                toolsList.innerHTML = toolsHTML;
+
+                // Add event listeners for search and sort
+                const searchInput = document.getElementById('tools-search');
+                const sortSelect = document.getElementById('tools-sort');
+
+                searchInput.addEventListener('input', (e) => {
+                    toolsManager.setSearchTerm(e.target.value);
+                });
+
+                sortSelect.addEventListener('change', (e) => {
+                    toolsManager.setSorting(e.target.value);
+                });
+
+                // Add click handlers for tool cards
+                document.querySelectorAll('.tool-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const toolName = card.dataset.toolName;
+                        selectTool(toolName);
+                    });
+                });
+            }
+
+            /**
+             * Renders a single tool card
+             * @param {Object} tool - Tool definition
+             * @returns {string} - HTML string for tool card
+             */
+            function renderToolCard(tool) {
+                const complexityClass = {
+                    'Simple': 'text-success',
+                    'Moderate': 'text-warning', 
+                    'Complex': 'text-error'
+                }[tool.complexity.level] || 'text-muted';
+
+                return `
+                    <div class="tool-card card" data-tool-name="${tool.name}" style="cursor: pointer; transition: all 0.2s ease;">
+                        <div class="card-header">
+                            <div class="flex justify-between items-center">
+                                <h3 class="card-title">${ValidationUtils.sanitizeInput(tool.name)}</h3>
+                                <span class="status-indicator" style="background: var(--surface-color); padding: 2px 6px; font-size: 0.75rem;">
+                                    ${ValidationUtils.sanitizeInput(tool.category)}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="tool-description mb-sm">
+                            <p class="text-sm text-secondary">${ValidationUtils.sanitizeInput(tool.description)}</p>
+                        </div>
+                        <div class="tool-metadata">
+                            <div class="flex justify-between items-center text-sm text-muted">
+                                <span>${tool.parameters.length} parameter${tool.parameters.length !== 1 ? 's' : ''}</span>
+                                <span class="${complexityClass}">${tool.complexity.level}</span>
+                            </div>
+                            ${tool.metadata.hasRequiredParams ? '<div class="text-sm text-warning mt-xs">Has required parameters</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            /**
+             * Selects a tool for execution
+             * @param {string} toolName - Name of the tool to select
+             */
+            function selectTool(toolName) {
+                const tool = toolsManager.getTool(toolName);
+                if (!tool) {
+                    showNotification(`Tool '${toolName}' not found`, 'error');
+                    return;
+                }
+
+                // Highlight selected tool
+                document.querySelectorAll('.tool-card').forEach(card => {
+                    card.style.borderColor = card.dataset.toolName === toolName ? 'var(--primary-color)' : 'var(--border-color)';
+                    card.style.boxShadow = card.dataset.toolName === toolName ? 'var(--shadow-md)' : 'var(--shadow-sm)';
+                });
+
+                // This will trigger task 4.2 - parameter form generation
+                console.log('Tool selected:', tool);
+                showNotification(`Selected tool: ${toolName}`, 'info');
+            }
+
+            /**
+             * Shows a notification to the user
+             * @param {string} message - Notification message
+             * @param {string} type - Notification type ('success', 'error', 'warning', 'info')
+             */
+            function showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 16px;
+                    border-radius: var(--radius-md);
+                    color: white;
+                    font-size: var(--font-size-sm);
+                    font-weight: var(--font-weight-medium);
+                    z-index: 1000;
+                    max-width: 300px;
+                    box-shadow: var(--shadow-lg);
+                    transition: all 0.3s ease;
+                `;
+
+                // Set background color based on type
+                const colors = {
+                    success: 'var(--success-color)',
+                    error: 'var(--error-color)',
+                    warning: 'var(--warning-color)',
+                    info: 'var(--primary-color)'
+                };
+                notification.style.backgroundColor = colors[type] || colors.info;
+
+                notification.textContent = message;
+                document.body.appendChild(notification);
+
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+
+            // Add CSS for tool card hover effects
+            const style = document.createElement('style');
+            style.textContent = `
+                .tool-card:hover {
+                    transform: translateY(-2px);
+                    box-shadow: var(--shadow-lg) !important;
+                    border-color: var(--primary-color) !important;
+                }
+                
+                .tools-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: var(--spacing-md);
+                }
+                
+                @media (max-width: 768px) {
+                    .tools-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .tools-controls {
+                        flex-direction: column;
+                        width: 100%;
+                    }
+                    
+                    .tools-controls input,
+                    .tools-controls select {
+                        width: 100% !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>
